@@ -1,0 +1,162 @@
+Date : 2026-02-03 15:02:19
+Directory : c:\Users\rybak\Downloads\Apps\SalesAgent
+Total : 76 files,  19815 codes, 497 comments, 1363 blanks, all 21675 lines
+
+Languages
++--------------------+------------+------------+------------+------------+------------+
+| language           | files      | code       | comment    | blank      | total      |
++--------------------+------------+------------+------------+------------+------------+
+| JSON               |          4 |      8,396 |          0 |          4 |      8,400 |
+| TypeScript JSX     |         28 |      7,385 |        209 |        600 |      8,194 |
+| TypeScript         |         24 |      2,546 |        271 |        372 |      3,189 |
+| Markdown           |          6 |      1,195 |          0 |        349 |      1,544 |
+| HTML               |          2 |        111 |          6 |          7 |        124 |
+| PostCSS            |          1 |         84 |          5 |         20 |        109 |
+| YAML               |          2 |         35 |          4 |          4 |         43 |
+| JSON with Comments |          1 |         34 |          0 |          1 |         35 |
+| JavaScript         |          2 |         20 |          2 |          5 |         27 |
+| XML                |          6 |          9 |          0 |          1 |         10 |
++--------------------+------------+------------+------------+------------+------------+
+
+Directories
++----------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                         | files      | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                            |         76 |     19,815 |        497 |      1,363 |     21,675 |
+| . (Files)                                                                                    |          8 |      8,520 |          3 |         35 |      8,558 |
+| .claude                                                                                      |          1 |          7 |          0 |          1 |          8 |
+| .github                                                                                      |          2 |         35 |          4 |          4 |         43 |
+| .github\workflows                                                                            |          2 |         35 |          4 |          4 |         43 |
+| Documentation                                                                                |          4 |        887 |          0 |        252 |      1,139 |
+| docs                                                                                         |          1 |        235 |          0 |         74 |        309 |
+| public                                                                                       |          7 |        116 |          6 |          7 |        129 |
+| src                                                                                          |         53 |     10,015 |        484 |        990 |     11,489 |
+| src\app                                                                                      |         28 |      5,581 |        178 |        494 |      6,253 |
+| src\app (Files)                                                                              |          4 |        285 |         12 |         36 |        333 |
+| src\app\api                                                                                  |         13 |      1,178 |         57 |        173 |      1,408 |
+| src\app\api\ai                                                                               |          8 |        772 |         15 |        102 |        889 |
+| src\app\api\ai\analyze-rfp                                                                   |          1 |        103 |          8 |         12 |        123 |
+| src\app\api\ai\compliance-check                                                              |          1 |         92 |          1 |         11 |        104 |
+| src\app\api\ai\extract-insights                                                              |          1 |         70 |          1 |         11 |         82 |
+| src\app\api\ai\generate-agenda                                                               |          1 |        116 |          1 |         12 |        129 |
+| src\app\api\ai\generate-chapter-content                                                      |          1 |        102 |          1 |         23 |        126 |
+| src\app\api\ai\generate-cover-letter                                                         |          1 |         77 |          1 |         10 |         88 |
+| src\app\api\ai\generate-proposal-structure                                                   |          1 |         97 |          1 |         11 |        109 |
+| src\app\api\ai\generate-questions                                                            |          1 |        115 |          1 |         12 |        128 |
+| src\app\api\rag                                                                              |          5 |        406 |         42 |         71 |        519 |
+| src\app\api\rag\analyze                                                                      |          1 |         99 |          9 |         17 |        125 |
+| src\app\api\rag\context                                                                      |          1 |         44 |          4 |          8 |         56 |
+| src\app\api\rag\corpus                                                                       |          1 |         97 |         12 |         17 |        126 |
+| src\app\api\rag\documents                                                                    |          1 |        115 |         12 |         20 |        147 |
+| src\app\api\rag\search                                                                       |          1 |         51 |          5 |          9 |         65 |
+| src\app\auth                                                                                 |          1 |        163 |          3 |         17 |        183 |
+| src\app\auth\login                                                                           |          1 |        163 |          3 |         17 |        183 |
+| src\app\customers                                                                            |          2 |        938 |         28 |         63 |      1,029 |
+| src\app\customers (Files)                                                                    |          1 |        741 |         23 |         46 |        810 |
+| src\app\customers\[id]                                                                       |          1 |        197 |          5 |         17 |        219 |
+| src\app\customers\[id]\edit                                                                  |          1 |        197 |          5 |         17 |        219 |
+| src\app\dashboard                                                                            |          1 |        249 |          6 |         16 |        271 |
+| src\app\project                                                                              |          2 |        639 |         14 |         56 |        709 |
+| src\app\project\[id]                                                                         |          1 |        374 |         10 |         32 |        416 |
+| src\app\project\new                                                                          |          1 |        265 |          4 |         24 |        293 |
+| src\app\projects                                                                             |          1 |        369 |          8 |         22 |        399 |
+| src\app\references                                                                           |          2 |        724 |         28 |         58 |        810 |
+| src\app\references (Files)                                                                   |          1 |        491 |         20 |         36 |        547 |
+| src\app\references\[id]                                                                      |          1 |        233 |          8 |         22 |        263 |
+| src\app\references\[id]\edit                                                                 |          1 |        233 |          8 |         22 |        263 |
+| src\app\resources                                                                            |          2 |      1,036 |         22 |         53 |      1,111 |
+| src\app\resources (Files)                                                                    |          1 |        684 |         17 |         32 |        733 |
+| src\app\resources\[id]                                                                       |          1 |        352 |          5 |         21 |        378 |
+| src\app\resources\[id]\edit                                                                  |          1 |        352 |          5 |         21 |        378 |
+| src\components                                                                               |         18 |      3,084 |         93 |        303 |      3,480 |
+| src\components\layout                                                                        |          3 |        248 |          7 |         21 |        276 |
+| src\components\ui                                                                            |          8 |        894 |         29 |        140 |      1,063 |
+| src\components\workflow                                                                      |          7 |      1,942 |         57 |        142 |      2,141 |
+| src\hooks                                                                                    |          1 |        274 |          2 |         31 |        307 |
+| src\lib                                                                                      |          4 |        620 |        172 |        108 |        900 |
+| src\store                                                                                    |          1 |        167 |         24 |         25 |        216 |
+| src\types                                                                                    |          1 |        289 |         15 |         29 |        333 |
++----------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++----------------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+
+| filename                                                                                     | language           | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+
+| c:\Users\rybak\Downloads\Apps\SalesAgent\.claude\settings.local.json                         | JSON               |          7 |          0 |          1 |          8 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\.github\workflows\firebase-hosting-merge.yml        | YAML               |         17 |          2 |          2 |         21 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\.github\workflows\firebase-hosting-pull-request.yml | YAML               |         18 |          2 |          2 |         22 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\Documentation\Allgemein.md                          | Markdown           |        111 |          0 |         29 |        140 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\Documentation\Kernfunktion.md                       | Markdown           |         47 |          0 |         15 |         62 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\Documentation\Prozesse.md                           | Markdown           |         98 |          0 |         24 |        122 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\Documentation\VertexAI_RAG_Integration.md           | Markdown           |        631 |          0 |        184 |        815 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\README.md                                           | Markdown           |         73 |          0 |         23 |         96 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\docs\VERTEX_AI_RAG.md                               | Markdown           |        235 |          0 |         74 |        309 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\eslint.config.mjs                                   | JavaScript         |         14 |          2 |          3 |         19 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\firebase.json                                       | JSON               |         10 |          0 |          1 |         11 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\next.config.ts                                      | TypeScript         |          4 |          1 |          3 |          8 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\package-lock.json                                   | JSON               |      8,341 |          0 |          1 |      8,342 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\package.json                                        | JSON               |         38 |          0 |          1 |         39 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\postcss.config.mjs                                  | JavaScript         |          6 |          0 |          2 |          8 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\public\404.html                                     | HTML               |         32 |          0 |          2 |         34 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\public\file.svg                                     | XML                |          1 |          0 |          0 |          1 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\public\globe.svg                                    | XML                |          1 |          0 |          0 |          1 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\public\index.html                                   | HTML               |         79 |          6 |          5 |         90 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\public\next.svg                                     | XML                |          1 |          0 |          0 |          1 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\public\vercel.svg                                   | XML                |          1 |          0 |          0 |          1 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\public\window.svg                                   | XML                |          1 |          0 |          0 |          1 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\api\ai\analyze-rfp\route.ts                 | TypeScript         |        103 |          8 |         12 |        123 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\api\ai\compliance-check\route.ts            | TypeScript         |         92 |          1 |         11 |        104 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\api\ai\extract-insights\route.ts            | TypeScript         |         70 |          1 |         11 |         82 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\api\ai\generate-agenda\route.ts             | TypeScript         |        116 |          1 |         12 |        129 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\api\ai\generate-chapter-content\route.ts    | TypeScript         |        102 |          1 |         23 |        126 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\api\ai\generate-cover-letter\route.ts       | TypeScript         |         77 |          1 |         10 |         88 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\api\ai\generate-proposal-structure\route.ts | TypeScript         |         97 |          1 |         11 |        109 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\api\ai\generate-questions\route.ts          | TypeScript         |        115 |          1 |         12 |        128 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\api\rag\analyze\route.ts                    | TypeScript         |         99 |          9 |         17 |        125 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\api\rag\context\route.ts                    | TypeScript         |         44 |          4 |          8 |         56 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\api\rag\corpus\route.ts                     | TypeScript         |         97 |         12 |         17 |        126 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\api\rag\documents\route.ts                  | TypeScript         |        115 |         12 |         20 |        147 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\api\rag\search\route.ts                     | TypeScript         |         51 |          5 |          9 |         65 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\auth\login\page.tsx                         | TypeScript JSX     |        163 |          3 |         17 |        183 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\customers\[id]\edit\page.tsx                | TypeScript JSX     |        197 |          5 |         17 |        219 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\customers\page.tsx                          | TypeScript JSX     |        741 |         23 |         46 |        810 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\dashboard\page.tsx                          | TypeScript JSX     |        249 |          6 |         16 |        271 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\globals.css                                 | PostCSS            |         84 |          5 |         20 |        109 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\icon.svg                                    | XML                |          4 |          0 |          1 |          5 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\layout.tsx                                  | TypeScript JSX     |         24 |          0 |          4 |         28 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\page.tsx                                    | TypeScript JSX     |        173 |          7 |         11 |        191 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\project\[id]\page.tsx                       | TypeScript JSX     |        374 |         10 |         32 |        416 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\project\new\page.tsx                        | TypeScript JSX     |        265 |          4 |         24 |        293 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\projects\page.tsx                           | TypeScript JSX     |        369 |          8 |         22 |        399 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\references\[id]\edit\page.tsx               | TypeScript JSX     |        233 |          8 |         22 |        263 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\references\page.tsx                         | TypeScript JSX     |        491 |         20 |         36 |        547 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\resources\[id]\edit\page.tsx                | TypeScript JSX     |        352 |          5 |         21 |        378 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\app\resources\page.tsx                          | TypeScript JSX     |        684 |         17 |         32 |        733 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\components\layout\Navbar.tsx                    | TypeScript JSX     |        164 |          7 |         13 |        184 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\components\layout\Sidebar.tsx                   | TypeScript JSX     |         82 |          0 |          7 |         89 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\components\layout\index.ts                      | TypeScript         |          2 |          0 |          1 |          3 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\components\ui\AiProposalModal.tsx               | TypeScript JSX     |        388 |         22 |         60 |        470 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\components\ui\Badge.tsx                         | TypeScript JSX     |         33 |          0 |          9 |         42 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\components\ui\Button.tsx                        | TypeScript JSX     |         57 |          0 |          9 |         66 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\components\ui\Card.tsx                          | TypeScript JSX     |         61 |          0 |         17 |         78 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\components\ui\FileUpload.tsx                    | TypeScript JSX     |        195 |          3 |         25 |        223 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\components\ui\Input.tsx                         | TypeScript JSX     |         89 |          0 |         11 |        100 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\components\ui\Modal.tsx                         | TypeScript JSX     |         65 |          4 |          8 |         77 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\components\ui\index.ts                          | TypeScript         |          6 |          0 |          1 |          7 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\components\workflow\StepCustomerMeeting.tsx     | TypeScript JSX     |        323 |          9 |         24 |        356 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\components\workflow\StepProposalCreated.tsx     | TypeScript JSX     |        456 |          7 |         36 |        499 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\components\workflow\StepProposalSent.tsx        | TypeScript JSX     |        350 |         10 |         23 |        383 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\components\workflow\StepQuestionsFormulated.tsx | TypeScript JSX     |        374 |         13 |         24 |        411 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\components\workflow\StepRFPReceived.tsx         | TypeScript JSX     |        300 |         13 |         23 |        336 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\components\workflow\WorkflowStepper.tsx         | TypeScript JSX     |        133 |          5 |         11 |        149 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\components\workflow\index.ts                    | TypeScript         |          6 |          0 |          1 |          7 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\hooks\useFirebase.ts                            | TypeScript         |        274 |          2 |         31 |        307 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\lib\ai.ts                                       | TypeScript         |        178 |         38 |         33 |        249 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\lib\firebase.ts                                 | TypeScript         |         17 |          1 |          4 |         22 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\lib\utils.ts                                    | TypeScript         |         81 |         39 |         14 |        134 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\lib\vertex-rag.ts                               | TypeScript         |        344 |         94 |         57 |        495 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\store\useStore.ts                               | TypeScript         |        167 |         24 |         25 |        216 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\src\types\index.ts                                  | TypeScript         |        289 |         15 |         29 |        333 |
+| c:\Users\rybak\Downloads\Apps\SalesAgent\tsconfig.json                                       | JSON with Comments |         34 |          0 |          1 |         35 |
+| Total                                                                                        |                    |     19,815 |        497 |      1,363 |     21,675 |
++----------------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+
