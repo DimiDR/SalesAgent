@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Plus, Search, User, Award, Briefcase, ChevronDown, ChevronUp, Edit2, Trash2, X } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
@@ -12,6 +13,7 @@ import { useStore } from '@/store/useStore';
 import { Employee, Skill, Certification, ProjectExperience } from '@/types';
 
 export default function ResourcesPage() {
+  const router = useRouter();
   const { employees, setEmployees, addEmployee, updateEmployee, removeEmployee } = useStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [availabilityFilter, setAvailabilityFilter] = useState<'all' | 'available' | 'partially_available' | 'unavailable'>('all');
@@ -250,7 +252,7 @@ export default function ResourcesPage() {
       case 'partially_available':
         return <Badge variant="warning">Teilweise verfügbar</Badge>;
       case 'unavailable':
-        return <Badge variant="danger">Nicht verfügbar</Badge>;
+        return <Badge variant="error">Nicht verfügbar</Badge>;
     }
   };
 
@@ -365,7 +367,7 @@ export default function ResourcesPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {getAvailabilityBadge(employee.availability)}
-                      <Button variant="ghost" size="sm" onClick={() => openModal(employee)}>
+                      <Button variant="ghost" size="sm" onClick={() => router.push(`/resources/${employee.id}/edit`)}>
                         <Edit2 className="w-4 h-4" />
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => handleDelete(employee.id)}>

@@ -2,18 +2,21 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import { Plus, Search, Building2, Mail, Phone, MapPin, Calendar, FileText, ChevronDown, ChevronUp, Edit2, Trash2, X, ExternalLink } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Plus, Search, Building2, Mail, Phone, MapPin, Calendar, FileText, ChevronDown, ChevronUp, Edit2, Trash2, X, ExternalLink, Sparkles } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
+import AiProposalModal from '@/components/ui/AiProposalModal';
 import { useStore } from '@/store/useStore';
 import { Customer, CustomerProposal, CustomerAppointment, Project } from '@/types';
 
 export default function CustomersPage() {
-  const { customers, setCustomers, addCustomer, updateCustomer, removeCustomer, projects } = useStore();
+  const router = useRouter();
+  const { customers, setCustomers, addCustomer, updateCustomer, removeCustomer, projects, addProject } = useStore();
 
   // Dynamisch Proposals aus Projects laden basierend auf customerId
   const getCustomerProposals = (customerId: string): CustomerProposal[] => {
@@ -43,8 +46,10 @@ export default function CustomersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
+  const [isAiProposalModalOpen, setIsAiProposalModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [selectedCustomerForAppointment, setSelectedCustomerForAppointment] = useState<Customer | null>(null);
+  const [selectedCustomerForAiProposal, setSelectedCustomerForAiProposal] = useState<Customer | null>(null);
   const [expandedCustomerId, setExpandedCustomerId] = useState<string | null>(null);
 
   // Form state
@@ -223,6 +228,50 @@ export default function CustomersPage() {
     setSelectedCustomerForAppointment(null);
   };
 
+  const openAiProposalModal = (customer: Customer) => {
+    setSelectedCustomerForAiProposal(customer);
+    setIsAiProposalModalOpen(true);
+  };
+
+  const closeAiProposalModal = () => {
+    setIsAiProposalModalOpen(false);
+    setSelectedCustomerForAiProposal(null);
+  };
+
+  const handleCreateAiProposal = (proposalData: {
+    projectName?: string;
+    description?: string;
+    requirements?: string[];
+    deadline?: string;
+    budget?: string;
+    notes?: string;
+  }) => {
+    if (!selectedCustomerForAiProposal) return;
+
+    // Create a new project for the customer
+    const newProject: Project = {
+      id: `proj-${Date.now()}`,
+      name: proposalData.projectName || `Neues Angebot für ${selectedCustomerForAiProposal.companyName}`,
+      customer: selectedCustomerForAiProposal.companyName,
+      customerId: selectedCustomerForAiProposal.id,
+      description: proposalData.description,
+      deadline: proposalData.deadline ? new Date(proposalData.deadline.split('.').reverse().join('-')) : undefined,
+      status: 'active',
+      currentStep: 'rfp_received',
+      createdBy: 'current-user',
+      teamMembers: [],
+      proposalValue: proposalData.budget ? parseFloat(proposalData.budget.replace(',', '.')) : undefined,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    addProject(newProject);
+    closeAiProposalModal();
+
+    // Navigate to the new project
+    router.push(`/project/${newProject.id}`);
+  };
+
   const handleSave = () => {
     const customerData: Customer = {
       id: editingCustomer?.id || `cust-${Date.now()}`,
@@ -304,7 +353,7 @@ export default function CustomersPage() {
       case 'accepted':
         return <Badge variant="success">Angenommen</Badge>;
       case 'rejected':
-        return <Badge variant="danger">Abgelehnt</Badge>;
+        return <Badge variant="error">Abgelehnt</Badge>;
       case 'expired':
         return <Badge variant="warning">Abgelaufen</Badge>;
     }
@@ -399,7 +448,7 @@ export default function CustomersPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="info">{customer.proposals.length} Angebote</Badge>
-                      <Button variant="ghost" size="sm" onClick={() => openModal(customer)}>
+                      <Button variant="ghost" size="sm" onClick={() => router.push(`/customers/${customer.id}/edit`)}>
                         <Edit2 className="w-4 h-4" />
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => handleDelete(customer.id)}>
@@ -486,9 +535,24 @@ export default function CustomersPage() {
 
                       {/* Proposals */}
                       <div>
-                        <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                          <FileText className="w-4 h-4" /> Angebote ({customer.proposals.length})
-                        </h4>
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                            <FileText className="w-4 h-4" /> Angebote ({customer.proposals.length})
+                          </h4>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openAiProposalModal(customer)}
+                              className="text-purple-600 border-purple-200 hover:bg-purple-50"
+                            >
+                              <Sparkles className="w-3 h-3 mr-1" /> Mit KI anlegen
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => router.push(`/project/new?customerId=${customer.id}`)}>
+                              <Plus className="w-3 h-3 mr-1" /> Neues Angebot
+                            </Button>
+                          </div>
+                        </div>
                         {customer.proposals.length === 0 ? (
                           <p className="text-sm text-gray-500">Keine Angebote vorhanden</p>
                         ) : (
@@ -729,6 +793,17 @@ export default function CustomersPage() {
           </Button>
         </div>
       </Modal>
+
+      {/* AI Proposal Modal */}
+      {selectedCustomerForAiProposal && (
+        <AiProposalModal
+          isOpen={isAiProposalModalOpen}
+          onClose={closeAiProposalModal}
+          customerId={selectedCustomerForAiProposal.id}
+          customerName={selectedCustomerForAiProposal.companyName}
+          onCreateProposal={handleCreateAiProposal}
+        />
+      )}
     </div>
   );
 }

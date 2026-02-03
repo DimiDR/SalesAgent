@@ -10,6 +10,7 @@ import {
   FileText,
   Settings,
   HelpCircle,
+  Award,
 } from 'lucide-react';
 
 const sidebarLinks = [
@@ -17,6 +18,7 @@ const sidebarLinks = [
   { href: '/projects', label: 'Angebote', icon: FolderOpen },
   { href: '/resources', label: 'Ressourcen', icon: Users },
   { href: '/customers', label: 'Kunden', icon: Building2 },
+  { href: '/references', label: 'Referenzen', icon: Award },
   { href: '/documents', label: 'Dokumente', icon: FileText },
 ];
 

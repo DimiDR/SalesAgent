@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { User, Project, Document, RFPAnalysis, Question, Meeting, Proposal, Notification, Employee, Customer } from '@/types';
+import type { User, Project, Document, RFPAnalysis, Question, Meeting, Proposal, Notification, Employee, Customer, Reference } from '@/types';
 
 interface AppState {
   // Auth state
@@ -59,6 +59,13 @@ interface AppState {
   addCustomer: (customer: Customer) => void;
   updateCustomer: (id: string, updates: Partial<Customer>) => void;
   removeCustomer: (id: string) => void;
+
+  // References state (Referenzen)
+  references: Reference[];
+  setReferences: (references: Reference[]) => void;
+  addReference: (reference: Reference) => void;
+  updateReference: (id: string, updates: Partial<Reference>) => void;
+  removeReference: (id: string) => void;
 
   // UI state
   isLoading: boolean;
@@ -175,6 +182,21 @@ export const useStore = create<AppState>()(
       })),
       removeCustomer: (id) => set((state) => ({
         customers: state.customers.filter((c) => c.id !== id)
+      })),
+
+      // References
+      references: [],
+      setReferences: (references) => set({ references }),
+      addReference: (reference) => set((state) => ({
+        references: [...state.references, reference]
+      })),
+      updateReference: (id, updates) => set((state) => ({
+        references: state.references.map((r) =>
+          r.id === id ? { ...r, ...updates } : r
+        )
+      })),
+      removeReference: (id) => set((state) => ({
+        references: state.references.filter((r) => r.id !== id)
       })),
 
       // UI

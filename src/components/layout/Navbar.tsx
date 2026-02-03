@@ -8,6 +8,7 @@ import {
   FolderOpen,
   Users,
   Building2,
+  Award,
   Bell,
   User,
   LogOut,
@@ -31,6 +32,7 @@ export default function Navbar() {
     { href: '/projects', label: 'Angebote', icon: FolderOpen },
     { href: '/resources', label: 'Ressourcen', icon: Users },
     { href: '/customers', label: 'Kunden', icon: Building2 },
+    { href: '/references', label: 'Referenzen', icon: Award },
   ];
 
   const handleLogout = () => {

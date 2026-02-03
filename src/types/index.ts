@@ -311,3 +311,22 @@ export interface CustomerAppointment {
   notes?: string;
   type: 'meeting' | 'call' | 'presentation' | 'other';
 }
+
+// Reference types (Referenzen)
+export interface Reference {
+  id: string;
+  customerId: string;
+  customerName: string;
+  projectTitle: string;
+  description: string;
+  industry?: string;
+  technologies?: string[];
+  projectDuration?: string;
+  projectValue?: number;
+  completionDate?: Date;
+  contactPerson?: string;
+  testimonial?: string;
+  isPublic: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}

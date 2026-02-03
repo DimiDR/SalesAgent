@@ -2,19 +2,25 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Plus, Search, Filter, FolderOpen, Calendar, Users, MoreVertical } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Plus, Search, Filter, FolderOpen, Calendar, Users, MoreVertical, Sparkles } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
+import AiProposalModal from '@/components/ui/AiProposalModal';
 import { useStore } from '@/store/useStore';
-import { WORKFLOW_STEPS, Project } from '@/types';
+import { WORKFLOW_STEPS, Project, Customer } from '@/types';
 
 export default function ProjectsPage() {
-  const { projects, setProjects, user, setUser } = useStore();
+  const router = useRouter();
+  const { projects, setProjects, addProject, user, setUser, customers } = useStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [showCustomerSelect, setShowCustomerSelect] = useState(false);
 
   useEffect(() => {
     // Mock user and projects for demo
@@ -94,6 +100,56 @@ export default function ProjectsPage() {
     }
   }, [user, projects.length, setUser, setProjects]);
 
+  const handleOpenAiModal = () => {
+    if (customers.length === 0) {
+      alert('Bitte legen Sie zuerst einen Kunden an.');
+      return;
+    }
+    setShowCustomerSelect(true);
+  };
+
+  const handleSelectCustomer = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setShowCustomerSelect(false);
+    setIsAiModalOpen(true);
+  };
+
+  const handleCloseAiModal = () => {
+    setIsAiModalOpen(false);
+    setSelectedCustomer(null);
+  };
+
+  const handleCreateAiProposal = (proposalData: {
+    projectName?: string;
+    description?: string;
+    requirements?: string[];
+    deadline?: string;
+    budget?: string;
+    notes?: string;
+  }) => {
+    if (!selectedCustomer) return;
+
+    const newProject: Project = {
+      id: `proj-${Date.now()}`,
+      name: proposalData.projectName || `Neues Angebot für ${selectedCustomer.companyName}`,
+      customer: selectedCustomer.companyName,
+      customerId: selectedCustomer.id,
+      description: proposalData.description,
+      deadline: proposalData.deadline ? new Date(proposalData.deadline.split('.').reverse().join('-')) : undefined,
+      status: 'active',
+      currentStep: 'rfp_received',
+      createdBy: user?.id || 'current-user',
+      teamMembers: user ? [user.id] : [],
+      proposalValue: proposalData.budget ? parseFloat(proposalData.budget.replace(',', '.')) : undefined,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    addProject(newProject);
+    handleCloseAiModal();
+    router.push(`/project/${newProject.id}`);
+  };
+
   const getStepLabel = (step: string) => {
     return WORKFLOW_STEPS.find((s) => s.step === step)?.label || step;
   };
@@ -124,11 +180,21 @@ export default function ProjectsPage() {
               Verwalten Sie Ihre Angebote
             </p>
           </div>
-          <Link href="/project/new">
-            <Button leftIcon={<Plus className="w-4 h-4" />}>
-              Neues Angebot
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              leftIcon={<Sparkles className="w-4 h-4" />}
+              onClick={handleOpenAiModal}
+              className="text-purple-600 border-purple-300 hover:bg-purple-50"
+            >
+              Mit KI anlegen
             </Button>
-          </Link>
+            <Link href="/project/new">
+              <Button leftIcon={<Plus className="w-4 h-4" />}>
+                Neues Angebot
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Filters */}
@@ -275,6 +341,58 @@ export default function ProjectsPage() {
           </div>
         )}
       </main>
+
+      {/* Customer Selection Modal */}
+      {showCustomerSelect && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={() => setShowCustomerSelect(false)}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[80vh] flex flex-col">
+              <div className="px-6 py-4 border-b border-gray-100">
+                <h2 className="text-lg font-semibold text-gray-900">Kunde auswählen</h2>
+                <p className="text-sm text-gray-500">Für welchen Kunden möchten Sie ein Angebot erstellen?</p>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4">
+                {customers.length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">Keine Kunden vorhanden</p>
+                ) : (
+                  <div className="space-y-2">
+                    {customers.map((customer) => (
+                      <button
+                        key={customer.id}
+                        onClick={() => handleSelectCustomer(customer)}
+                        className="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-colors"
+                      >
+                        <p className="font-medium text-gray-900">{customer.companyName}</p>
+                        <p className="text-sm text-gray-500">{customer.contactPerson}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="px-6 py-4 border-t border-gray-100">
+                <Button variant="outline" onClick={() => setShowCustomerSelect(false)} className="w-full">
+                  Abbrechen
+                </Button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* AI Proposal Modal */}
+      {selectedCustomer && (
+        <AiProposalModal
+          isOpen={isAiModalOpen}
+          onClose={handleCloseAiModal}
+          customerId={selectedCustomer.id}
+          customerName={selectedCustomer.companyName}
+          onCreateProposal={handleCreateAiProposal}
+        />
+      )}
     </div>
   );
 }
