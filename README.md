@@ -1,36 +1,95 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SalesAgent
 
-## Getting Started
+KI-gestütztes RFP-Management System zur Automatisierung von Angebotsprozessen.
 
-First, run the development server:
+## Features
+
+- **RFP-Analyse** - Automatische Analyse von RFP-Dokumenten mit KI-Unterstützung
+- **KI-Generierung** - Generierung von Fragen, Agenden und Angebotsinhalten (powered by xAI Grok)
+- **Team-Kollaboration** - Zusammenarbeit im Team mit Aufgabenzuweisung
+- **Workflow-Management** - Strukturierter 5-Schritte-Prozess
+
+## 5-Schritte-Workflow
+
+1. **RFP Erhalten** - Upload und Analyse von RFP-Dokumenten
+2. **Fragen Stellen** - KI-generierte Rückfragen an den Kunden
+3. **Kundentermin** - Agenda-Erstellung und Meeting-Vorbereitung
+4. **Angebot Erstellen** - Automatische Angebotsgenerierung
+5. **Angebot Senden** - Finalisierung und Versand
+
+## Tech Stack
+
+- **Frontend:** Next.js 16, React 19, TypeScript
+- **Styling:** Tailwind CSS 4
+- **State Management:** Zustand
+- **Backend:** Firebase
+- **KI:** xAI Grok 4.1
+- **Icons:** Lucide React
+
+## Installation
 
 ```bash
+# Repository klonen
+git clone https://github.com/YOUR_USERNAME/SalesAgent.git
+
+# In das Verzeichnis wechseln
+cd SalesAgent
+
+# Abhängigkeiten installieren
+npm install
+
+# Entwicklungsserver starten
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Umgebungsvariablen
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Erstellen Sie eine `.env.local` Datei mit folgenden Variablen:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```env
+# Firebase Configuration
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
 
-## Learn More
+# xAI API
+XAI_API_KEY=your_xai_api_key
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run dev      # Entwicklungsserver starten
+npm run build    # Produktions-Build erstellen
+npm run start    # Produktionsserver starten
+npm run lint     # Code-Linting ausführen
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Projektstruktur
 
-## Deploy on Vercel
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── api/               # API Routes
+│   ├── auth/              # Authentifizierung
+│   ├── customers/         # Kundenverwaltung
+│   ├── dashboard/         # Dashboard
+│   ├── project/           # Einzelprojekt-Ansicht
+│   ├── projects/          # Projektübersicht
+│   └── resources/         # Ressourcen
+├── components/            # React-Komponenten
+│   ├── layout/           # Layout-Komponenten
+│   ├── ui/               # UI-Komponenten
+│   └── workflow/         # Workflow-Schritte
+├── hooks/                 # Custom Hooks
+├── lib/                   # Hilfsfunktionen
+├── store/                 # Zustand Store
+└── types/                 # TypeScript-Typen
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Lizenz
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT License
