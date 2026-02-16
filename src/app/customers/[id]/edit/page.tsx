@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import { Card, CardContent } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
+import { Input, Textarea } from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import { useStore } from '@/store/useStore';
 import { Customer } from '@/types';
@@ -15,8 +15,12 @@ export default function EditCustomerPage() {
   const router = useRouter();
   const id = params.id as string;
 
-  const { customers, updateCustomer } = useStore();
+  const { customers, loadCustomers, updateCustomer } = useStore();
   const customer = customers.find((c) => c.id === id);
+
+  useEffect(() => {
+    loadCustomers();
+  }, [loadCustomers]);
 
   const [formData, setFormData] = useState({
     companyName: '',
@@ -50,10 +54,10 @@ export default function EditCustomerPage() {
     }
   }, [customer]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!customer) return;
 
-    const customerData: Partial<Customer> = {
+    await updateCustomer(customer.id, {
       companyName: formData.companyName,
       industry: formData.industry || undefined,
       contactPerson: formData.contactPerson,
@@ -67,10 +71,7 @@ export default function EditCustomerPage() {
         postalCode: formData.postalCode,
         country: formData.country,
       } : undefined,
-      updatedAt: new Date(),
-    };
-
-    updateCustomer(customer.id, customerData);
+    });
     router.push('/customers');
   };
 
@@ -193,12 +194,11 @@ export default function EditCustomerPage() {
 
               {/* Notes */}
               <div className="border-t pt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Notizen</label>
-                <textarea
+                <Textarea
+                  label="Notizen"
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Zusätzliche Informationen über den Kunden..."
                 />
               </div>

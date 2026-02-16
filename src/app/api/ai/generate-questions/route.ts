@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSAPContextForPrompt } from '@/lib/sap-terminology';
+import { questionSchema, schemaToPrompt, validateArray } from '@/lib/ai-schema';
+import { extractJson } from '@/lib/ai';
 
 const XAI_API_KEY = process.env.XAI_API_KEY;
 const XAI_API_URL = process.env.XAI_API_URL || 'https://api.x.ai/v1';
@@ -14,17 +17,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const systemPrompt = `Du bist ein erfahrener Vertriebsberater. Basierend auf der RFP-Analyse, generiere Fragen aus verschiedenen Perspektiven:
-1. Sales-Perspektive: Budget, Timeline, Entscheidungsprozess
-2. Technische Perspektive: Spezifikationen, Integration, Security
-3. Projektmanagement-Perspektive: Ressourcen, Risiken
-4. Kunden-Perspektive: Pain-Points, Erwartungen
+    const fieldDescription = schemaToPrompt(questionSchema, 'Frage');
 
-Für jede Frage gib an:
-- persona: 'sales' | 'technical' | 'project_management' | 'customer'
-- question: Die Frage
-- reasoning: Warum diese Frage wichtig ist
-- priority: 'high' | 'medium' | 'low'
+    const systemPrompt = `Du bist ein erfahrener SAP-Vertriebsberater. Basierend auf der RFP-Analyse, generiere Fragen aus verschiedenen Perspektiven:
+1. Sales-Perspektive: Budget, Timeline, Entscheidungsprozess, Lizenzmodell (RISE/GROW with SAP)
+2. Technische Perspektive: SAP-Systemlandschaft, Module, Customizing, ABAP-Entwicklung, Integration, Cloud vs. On-Premise
+3. Projektmanagement-Perspektive: Ressourcen, Risiken, SAP Activate-Methodik, Go-Live-Planung
+4. Kunden-Perspektive: Pain-Points mit bestehendem SAP-System, Erwartungen an S/4HANA-Transformation
+
+${getSAPContextForPrompt()}
+
+${fieldDescription}
 
 Gib die Fragen als JSON-Array zurück.`;
 
@@ -36,7 +39,7 @@ Gib die Fragen als JSON-Array zurück.`;
           Authorization: `Bearer ${XAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'grok-2-latest',
+          model: 'grok-4-1-fast-non-reasoning',
           messages: [
             { role: 'system', content: systemPrompt },
             {
@@ -55,13 +58,12 @@ Gib die Fragen als JSON-Array zurück.`;
       const data = await response.json();
       const questionsText = data.choices[0]?.message?.content;
 
-      const jsonMatch = questionsText.match(/```json\n?([\s\S]*?)\n?```/) ||
-                        questionsText.match(/\[[\s\S]*\]/);
+      const parsed = extractJson<unknown[]>(questionsText);
 
-      if (jsonMatch) {
-        const questions = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+      if (parsed && Array.isArray(parsed)) {
+        const questions = validateArray(parsed, questionSchema);
         return NextResponse.json(
-          questions.map((q: Record<string, unknown>) => ({
+          questions.map((q) => ({
             id: crypto.randomUUID(),
             projectId,
             ...q,
@@ -78,8 +80,8 @@ Gib die Fragen als JSON-Array zurück.`;
         id: crypto.randomUUID(),
         projectId,
         persona: 'sales',
-        question: 'Welches Budget haben Sie für dieses Projekt eingeplant?',
-        reasoning: 'Ermöglicht genaue Kostenkalkulation',
+        question: 'Welches Lizenzmodell bevorzugen Sie – RISE with SAP oder GROW with SAP?',
+        reasoning: 'Bestimmt den Implementierungsansatz und die Kostenstruktur',
         priority: 'high',
         status: 'pending',
         createdAt: new Date().toISOString(),
@@ -88,8 +90,8 @@ Gib die Fragen als JSON-Array zurück.`;
         id: crypto.randomUUID(),
         projectId,
         persona: 'technical',
-        question: 'Welche Cloud-Plattform bevorzugen Sie?',
-        reasoning: 'Bestimmt technische Architektur',
+        question: 'Welchen SAP ECC Release-Stand nutzen Sie aktuell und wie viele Z-Entwicklungen (Custom ABAP) sind im System?',
+        reasoning: 'Bestimmt den Migrationsaufwand und die Clean-Core-Strategie',
         priority: 'high',
         status: 'pending',
         createdAt: new Date().toISOString(),
@@ -98,8 +100,8 @@ Gib die Fragen als JSON-Array zurück.`;
         id: crypto.randomUUID(),
         projectId,
         persona: 'project_management',
-        question: 'Welche internen Ressourcen können bereitgestellt werden?',
-        reasoning: 'Wichtig für Projektplanung',
+        question: 'Haben Sie bereits Erfahrung mit der SAP Activate-Methodik und stehen interne Key-User als Projektteam zur Verfügung?',
+        reasoning: 'Wichtig für die Projektplanung und den Fit-to-Standard-Ansatz',
         priority: 'medium',
         status: 'pending',
         createdAt: new Date().toISOString(),
@@ -108,8 +110,8 @@ Gib die Fragen als JSON-Array zurück.`;
         id: crypto.randomUUID(),
         projectId,
         persona: 'customer',
-        question: 'Was sind Ihre größten Schmerzpunkte mit der aktuellen Lösung?',
-        reasoning: 'Hilft bei Fokussierung auf Kundennutzen',
+        question: 'Was sind Ihre größten Pain-Points mit dem aktuellen SAP-System und welche Prozesse sollen mit S/4HANA optimiert werden?',
+        reasoning: 'Hilft bei der Fokussierung auf Quick-Wins und Kundennutzen',
         priority: 'high',
         status: 'pending',
         createdAt: new Date().toISOString(),

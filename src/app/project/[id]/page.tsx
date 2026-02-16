@@ -14,6 +14,7 @@ import WorkflowStepper from '@/components/workflow/WorkflowStepper';
 import StepRFPReceived from '@/components/workflow/StepRFPReceived';
 import StepQuestionsFormulated from '@/components/workflow/StepQuestionsFormulated';
 import StepCustomerMeeting from '@/components/workflow/StepCustomerMeeting';
+import StepCalculation from '@/components/workflow/StepCalculation';
 import StepProposalCreated from '@/components/workflow/StepProposalCreated';
 import StepProposalSent from '@/components/workflow/StepProposalSent';
 import { useStore } from '@/store/useStore';
@@ -24,11 +25,17 @@ export default function ProjectPage() {
   const router = useRouter();
   const projectId = params.id as string;
 
-  const { projects, currentProject, setCurrentProject, updateProject, customers } = useStore();
+  const {
+    projects, currentProject, setCurrentProject, updateProject,
+    customers, loadProjects, loadCustomers,
+    loadProjectDocuments, loadAnalysis, loadQuestions, loadMeeting, loadCalculation, loadProposal,
+  } = useStore();
+
   const [stepStatuses, setStepStatuses] = useState<Record<WorkflowStep, WorkflowStatus>>({
     rfp_received: { step: 'rfp_received', status: 'pending' },
     questions_formulated: { step: 'questions_formulated', status: 'pending' },
     customer_meeting: { step: 'customer_meeting', status: 'pending' },
+    calculation: { step: 'calculation', status: 'pending' },
     proposal_created: { step: 'proposal_created', status: 'pending' },
     proposal_sent: { step: 'proposal_sent', status: 'pending' },
   });
@@ -44,6 +51,23 @@ export default function ProjectPage() {
     proposalValue: '',
   });
 
+  // Load projects + customers if not yet loaded
+  useEffect(() => {
+    loadProjects();
+    loadCustomers();
+  }, [loadProjects, loadCustomers]);
+
+  // Load project-specific data when project is set
+  useEffect(() => {
+    if (!projectId) return;
+    loadProjectDocuments(projectId);
+    loadAnalysis(projectId);
+    loadQuestions(projectId);
+    loadMeeting(projectId);
+    loadCalculation(projectId);
+    loadProposal(projectId);
+  }, [projectId, loadProjectDocuments, loadAnalysis, loadQuestions, loadMeeting, loadCalculation, loadProposal]);
+
   const openEditModal = () => {
     if (currentProject) {
       setEditFormData({
@@ -51,7 +75,7 @@ export default function ProjectPage() {
         customerId: currentProject.customerId || '',
         customer: currentProject.customer,
         description: currentProject.description || '',
-        deadline: currentProject.deadline
+        deadline: currentProject.deadline && !isNaN(new Date(currentProject.deadline).getTime())
           ? new Date(currentProject.deadline).toISOString().split('T')[0]
           : '',
         proposalValue: currentProject.proposalValue?.toString() || '',
@@ -70,17 +94,16 @@ export default function ProjectPage() {
     }));
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!currentProject) return;
 
-    updateProject(projectId, {
+    await updateProject(projectId, {
       name: editFormData.name,
       customerId: editFormData.customerId || undefined,
       customer: editFormData.customer,
       description: editFormData.description || undefined,
       deadline: editFormData.deadline ? new Date(editFormData.deadline) : undefined,
       proposalValue: editFormData.proposalValue ? parseFloat(editFormData.proposalValue) : undefined,
-      updatedAt: new Date(),
     });
 
     setIsEditModalOpen(false);
@@ -110,7 +133,7 @@ export default function ProjectPage() {
     }
   }, [projectId, projects, setCurrentProject]);
 
-  const handleStepComplete = () => {
+  const handleStepComplete = async () => {
     if (!currentProject) return;
 
     const currentStepIndex = WORKFLOW_STEPS.findIndex(
@@ -119,7 +142,7 @@ export default function ProjectPage() {
 
     if (currentStepIndex < WORKFLOW_STEPS.length - 1) {
       const nextStep = WORKFLOW_STEPS[currentStepIndex + 1].step;
-      updateProject(projectId, { currentStep: nextStep });
+      await updateProject(projectId, { currentStep: nextStep });
 
       // Update step statuses
       setStepStatuses((prev) => ({
@@ -136,7 +159,7 @@ export default function ProjectPage() {
       }));
     } else {
       // Last step completed
-      updateProject(projectId, { status: 'completed' });
+      await updateProject(projectId, { status: 'completed' });
       setStepStatuses((prev) => ({
         ...prev,
         proposal_sent: {
@@ -148,9 +171,9 @@ export default function ProjectPage() {
     }
   };
 
-  const handleStepClick = (step: WorkflowStep) => {
+  const handleStepClick = async (step: WorkflowStep) => {
     if (!currentProject) return;
-    updateProject(projectId, { currentStep: step });
+    await updateProject(projectId, { currentStep: step });
   };
 
   const renderCurrentStep = () => {
@@ -174,6 +197,13 @@ export default function ProjectPage() {
       case 'customer_meeting':
         return (
           <StepCustomerMeeting
+            projectId={projectId}
+            onComplete={handleStepComplete}
+          />
+        );
+      case 'calculation':
+        return (
+          <StepCalculation
             projectId={projectId}
             onComplete={handleStepComplete}
           />

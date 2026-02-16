@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Search, User, Award, Briefcase, ChevronDown, ChevronUp, Edit2, Trash2, X } from 'lucide-react';
+import { Plus, Search, User, Award, Briefcase, ChevronDown, ChevronUp, Edit2, Trash2, X, Mic, MicOff, Loader2, Sparkles } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -10,11 +10,12 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import { useStore } from '@/store/useStore';
+import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { Employee, Skill, Certification, ProjectExperience } from '@/types';
 
 export default function ResourcesPage() {
   const router = useRouter();
-  const { employees, setEmployees, addEmployee, updateEmployee, removeEmployee } = useStore();
+  const { employees, loadEmployees, addEmployee, updateEmployee, removeEmployee } = useStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [availabilityFilter, setAvailabilityFilter] = useState<'all' | 'available' | 'partially_available' | 'unavailable'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -40,82 +41,67 @@ export default function ResourcesPage() {
   const [newCert, setNewCert] = useState({ name: '', issuer: '', dateObtained: '', expiryDate: '', credentialId: '' });
   const [newExp, setNewExp] = useState({ projectName: '', role: '', duration: '', description: '', technologies: '' });
 
-  useEffect(() => {
-    // Mock data for demo
-    if (employees.length === 0) {
-      setEmployees([
-        {
-          id: 'emp-1',
-          firstName: 'Max',
-          lastName: 'Mustermann',
-          email: 'max.mustermann@company.de',
-          phone: '+49 123 456789',
-          position: 'Senior Cloud Architect',
-          department: 'Cloud Services',
-          skills: [
-            { id: 'skill-1', name: 'Azure', level: 'expert', yearsOfExperience: 5 },
-            { id: 'skill-2', name: 'Kubernetes', level: 'advanced', yearsOfExperience: 3 },
-            { id: 'skill-3', name: 'Terraform', level: 'advanced', yearsOfExperience: 4 },
-          ],
-          certifications: [
-            { id: 'cert-1', name: 'Azure Solutions Architect Expert', issuer: 'Microsoft', dateObtained: new Date('2023-05-15') },
-            { id: 'cert-2', name: 'CKA - Certified Kubernetes Administrator', issuer: 'CNCF', dateObtained: new Date('2022-08-20') },
-          ],
-          projectExperience: [
-            { id: 'exp-1', projectName: 'Cloud Migration Firma A', role: 'Lead Architect', duration: '8 Monate', technologies: ['Azure', 'Terraform', 'Docker'] },
-            { id: 'exp-2', projectName: 'Kubernetes Platform', role: 'Technical Lead', duration: '12 Monate', technologies: ['Kubernetes', 'Helm', 'ArgoCD'] },
-          ],
-          availability: 'available',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        {
-          id: 'emp-2',
-          firstName: 'Anna',
-          lastName: 'Schmidt',
-          email: 'anna.schmidt@company.de',
-          position: 'DevOps Engineer',
-          department: 'DevOps',
-          skills: [
-            { id: 'skill-4', name: 'CI/CD', level: 'expert', yearsOfExperience: 6 },
-            { id: 'skill-5', name: 'Jenkins', level: 'advanced', yearsOfExperience: 4 },
-            { id: 'skill-6', name: 'Python', level: 'intermediate', yearsOfExperience: 2 },
-          ],
-          certifications: [
-            { id: 'cert-3', name: 'AWS DevOps Professional', issuer: 'Amazon', dateObtained: new Date('2024-01-10') },
-          ],
-          projectExperience: [
-            { id: 'exp-3', projectName: 'DevOps Transformation B AG', role: 'DevOps Engineer', duration: '6 Monate', technologies: ['Jenkins', 'GitLab CI', 'AWS'] },
-          ],
-          availability: 'partially_available',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        {
-          id: 'emp-3',
-          firstName: 'Thomas',
-          lastName: 'Müller',
-          email: 'thomas.mueller@company.de',
-          position: 'Security Consultant',
-          department: 'Security',
-          skills: [
-            { id: 'skill-7', name: 'Penetration Testing', level: 'expert', yearsOfExperience: 7 },
-            { id: 'skill-8', name: 'SIEM', level: 'advanced', yearsOfExperience: 4 },
-          ],
-          certifications: [
-            { id: 'cert-4', name: 'CISSP', issuer: 'ISC2', dateObtained: new Date('2021-03-15') },
-            { id: 'cert-5', name: 'CEH', issuer: 'EC-Council', dateObtained: new Date('2020-06-20') },
-          ],
-          projectExperience: [
-            { id: 'exp-4', projectName: 'Security Audit Firma C', role: 'Lead Auditor', duration: '3 Monate', technologies: ['Nessus', 'Burp Suite', 'Splunk'] },
-          ],
-          availability: 'unavailable',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ]);
+  // Speech input state
+  const [speechTranscript, setSpeechTranscript] = useState('');
+  const [speechParsing, setSpeechParsing] = useState(false);
+  const [speechError, setSpeechError] = useState('');
+
+  const handleSpeechResult = (text: string) => {
+    setSpeechTranscript((prev) => (prev ? `${prev} ${text}` : text));
+  };
+
+  const { isListening, interimTranscript, isSupported: speechSupported, toggleListening } =
+    useSpeechRecognition({ onTranscript: handleSpeechResult });
+
+  const handleSpeechToEmployee = async () => {
+    const text = speechTranscript.trim();
+    if (!text) return;
+
+    setSpeechParsing(true);
+    setSpeechError('');
+
+    try {
+      const response = await fetch('/api/ai/parse-employee-from-speech', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript: text }),
+      });
+      const data = await response.json();
+
+      if (data.error) {
+        setSpeechError(data.error);
+      } else if (data.employee) {
+        const e = data.employee;
+        setFormData({
+          firstName: (e.firstName as string) || formData.firstName,
+          lastName: (e.lastName as string) || formData.lastName,
+          email: (e.email as string) || formData.email,
+          phone: (e.phone as string) || formData.phone,
+          position: (e.position as string) || formData.position,
+          department: (e.department as string) || formData.department,
+          availability: (e.availability as Employee['availability']) || formData.availability,
+        });
+        // Add parsed skills
+        if (Array.isArray(e.skills) && e.skills.length > 0) {
+          const parsedSkills: Skill[] = (e.skills as string[]).map((name, idx) => ({
+            id: `skill-speech-${Date.now()}-${idx}`,
+            name,
+            level: 'intermediate' as const,
+          }));
+          setSkills((prev) => [...prev, ...parsedSkills]);
+        }
+        setSpeechTranscript('');
+      }
+    } catch {
+      setSpeechError('Fehler bei der Verarbeitung. Bitte versuchen Sie es erneut.');
+    } finally {
+      setSpeechParsing(false);
     }
-  }, [employees.length, setEmployees]);
+  };
+
+  useEffect(() => {
+    loadEmployees();
+  }, [loadEmployees]);
 
   const resetForm = () => {
     setFormData({
@@ -203,9 +189,8 @@ export default function ResourcesPage() {
     }
   };
 
-  const handleSave = () => {
-    const employeeData: Employee = {
-      id: editingEmployee?.id || `emp-${Date.now()}`,
+  const handleSave = async () => {
+    const employeeFields = {
       firstName: formData.firstName,
       lastName: formData.lastName,
       email: formData.email,
@@ -216,21 +201,19 @@ export default function ResourcesPage() {
       certifications,
       projectExperience,
       availability: formData.availability,
-      createdAt: editingEmployee?.createdAt || new Date(),
-      updatedAt: new Date(),
     };
 
     if (editingEmployee) {
-      updateEmployee(editingEmployee.id, employeeData);
+      await updateEmployee(editingEmployee.id, employeeFields);
     } else {
-      addEmployee(employeeData);
+      await addEmployee(employeeFields);
     }
     closeModal();
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Möchten Sie diesen Mitarbeiter wirklich löschen?')) {
-      removeEmployee(id);
+      await removeEmployee(id);
     }
   };
 
@@ -511,6 +494,74 @@ export default function ResourcesPage() {
       {/* Add/Edit Employee Modal */}
       <Modal isOpen={isModalOpen} onClose={closeModal} title={editingEmployee ? 'Mitarbeiter bearbeiten' : 'Neuer Mitarbeiter'} size="lg">
         <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
+          {/* Speech Input */}
+          {!editingEmployee && speechSupported && (
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="w-4 h-4 text-purple-600" />
+                <h4 className="text-sm font-medium text-purple-800">Per Sprache anlegen</h4>
+              </div>
+              <p className="text-xs text-purple-600 mb-3">
+                Beschreiben Sie den Mitarbeiter z.B.: &quot;Thomas Müller, Senior FI-Berater, E-Mail t.mueller at consulting punkt de, Abteilung SAP Consulting, Skills FI CO ABAP und S/4HANA, verfügbar&quot;
+              </p>
+              <div className="flex gap-2 mb-2">
+                <button
+                  onClick={toggleListening}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isListening
+                      ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                      : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                  }`}
+                >
+                  {isListening ? (
+                    <>
+                      <MicOff className="w-4 h-4" />
+                      Aufnahme stoppen
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="w-4 h-4" />
+                      Aufnahme starten
+                    </>
+                  )}
+                </button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleSpeechToEmployee}
+                  disabled={!speechTranscript.trim() || speechParsing}
+                >
+                  {speechParsing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                      Erkennung...
+                    </>
+                  ) : (
+                    'Felder ausfüllen'
+                  )}
+                </Button>
+              </div>
+              {(speechTranscript || interimTranscript) && (
+                <div className="bg-white border border-purple-100 rounded p-2 text-sm text-gray-700">
+                  {speechTranscript}
+                  {interimTranscript && (
+                    <span className="text-gray-400 italic"> {interimTranscript}</span>
+                  )}
+                </div>
+              )}
+              <textarea
+                className="w-full mt-2 px-3 py-2 border border-purple-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                rows={2}
+                placeholder="Oder Text hier eingeben..."
+                value={speechTranscript}
+                onChange={(e) => setSpeechTranscript(e.target.value)}
+              />
+              {speechError && (
+                <p className="text-xs text-red-600 mt-1">{speechError}</p>
+              )}
+            </div>
+          )}
+
           {/* Basic Info */}
           <div className="grid grid-cols-2 gap-4">
             <Input

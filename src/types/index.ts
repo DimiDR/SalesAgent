@@ -1,13 +1,3 @@
-// User types
-export interface User {
-  id: string;
-  email: string;
-  displayName: string;
-  role: 'admin' | 'team_member';
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 // Project types
 export interface Project {
   id: string;
@@ -30,6 +20,7 @@ export type WorkflowStep =
   | 'rfp_received'
   | 'questions_formulated'
   | 'customer_meeting'
+  | 'calculation'
   | 'proposal_created'
   | 'proposal_sent';
 
@@ -49,13 +40,18 @@ export const WORKFLOW_STEPS: { step: WorkflowStep; label: string; description: s
   },
   {
     step: 'questions_formulated',
-    label: 'Fragen Gestellt',
+    label: 'Kundenfragen',
     description: 'Generierung und Klärung offener Punkte mit dem Kunden'
   },
   {
     step: 'customer_meeting',
     label: 'Kundentermin Gehalten',
     description: 'Vorbereitung und Nachbereitung eines Meetings'
+  },
+  {
+    step: 'calculation',
+    label: 'Kalkulation',
+    description: 'Ressourcenplanung, Kostenkalkulation und Preisfindung'
   },
   {
     step: 'proposal_created',
@@ -80,6 +76,7 @@ export interface Document {
   storagePath: string;
   size: number;
   uploadedBy: string;
+  ragDocumentId?: string;
   createdAt: Date;
   metadata?: Record<string, unknown>;
 }
@@ -219,7 +216,6 @@ export interface RAGContext {
 // Notification types
 export interface Notification {
   id: string;
-  userId: string;
   projectId?: string;
   type: 'task_assigned' | 'step_completed' | 'comment_added' | 'deadline_reminder';
   title: string;
@@ -310,6 +306,35 @@ export interface CustomerAppointment {
   date: Date;
   notes?: string;
   type: 'meeting' | 'call' | 'presentation' | 'other';
+}
+
+// Calculation types (Kalkulation)
+export interface MonthlyAllocation {
+  month: string; // YYYY-MM
+  allocationPercent: number; // 0-100
+}
+
+export interface CalculationResource {
+  id: string;
+  employeeId: string;
+  role: string;
+  dailyRate: number;
+  plannedDays: number;
+  monthlyAllocations: MonthlyAllocation[];
+}
+
+export interface ProjectCalculation {
+  id: string;
+  projectId: string;
+  resources: CalculationResource[];
+  projectStart: string; // YYYY-MM-DD
+  projectEnd: string; // YYYY-MM-DD
+  overheadPercent: number;
+  marginPercent: number;
+  discountPercent: number;
+  notes: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // Reference types (Referenzen)

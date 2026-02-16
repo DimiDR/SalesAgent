@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import { Card, CardContent } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
+import { Input, Textarea } from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import { useStore } from '@/store/useStore';
 import { Reference } from '@/types';
@@ -15,8 +15,13 @@ export default function EditReferencePage() {
   const router = useRouter();
   const id = params.id as string;
 
-  const { references, updateReference, customers } = useStore();
+  const { references, loadReferences, updateReference, customers, loadCustomers } = useStore();
   const reference = references.find((r) => r.id === id);
+
+  useEffect(() => {
+    loadReferences();
+    loadCustomers();
+  }, [loadReferences, loadCustomers]);
 
   const [formData, setFormData] = useState({
     customerId: '',
@@ -57,13 +62,13 @@ export default function EditReferencePage() {
     return customer?.companyName || 'Unbekannter Kunde';
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!reference) return;
 
     const customerName = getCustomerName(formData.customerId);
     const selectedCustomer = customers.find(c => c.id === formData.customerId);
 
-    const referenceData: Partial<Reference> = {
+    await updateReference(reference.id, {
       customerId: formData.customerId,
       customerName: customerName,
       projectTitle: formData.projectTitle,
@@ -78,10 +83,7 @@ export default function EditReferencePage() {
       contactPerson: formData.contactPerson || selectedCustomer?.contactPerson || undefined,
       testimonial: formData.testimonial || undefined,
       isPublic: formData.isPublic,
-      updatedAt: new Date(),
-    };
-
-    updateReference(reference.id, referenceData);
+    });
     router.push('/references');
   };
 
@@ -161,17 +163,13 @@ export default function EditReferencePage() {
               </div>
 
               {/* Description */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Beschreibung *</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Beschreiben Sie das Projekt und die durchgeführten Leistungen..."
-                  required
-                />
-              </div>
+              <Textarea
+                label="Beschreibung *"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+                placeholder="Beschreiben Sie das Projekt und die durchgeführten Leistungen..."
+              />
 
               {/* Technologies */}
               <Input
@@ -217,16 +215,13 @@ export default function EditReferencePage() {
                   placeholder="Name des Kundenansprechpartners"
                   className="mb-4"
                 />
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Testimonial / Zitat</label>
-                  <textarea
-                    value={formData.testimonial}
-                    onChange={(e) => setFormData({ ...formData, testimonial: e.target.value })}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Kundenzitat oder Feedback zum Projekt..."
-                  />
-                </div>
+                <Textarea
+                  label="Testimonial / Zitat"
+                  value={formData.testimonial}
+                  onChange={(e) => setFormData({ ...formData, testimonial: e.target.value })}
+                  rows={3}
+                  placeholder="Kundenzitat oder Feedback zum Projekt..."
+                />
               </div>
 
               {/* Visibility */}

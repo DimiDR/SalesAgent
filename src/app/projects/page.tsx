@@ -10,142 +10,74 @@ import { Input } from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import AiProposalModal from '@/components/ui/AiProposalModal';
+import type { ProposalData } from '@/components/ui/AiProposalModal';
 import { useStore } from '@/store/useStore';
 import { WORKFLOW_STEPS, Project, Customer } from '@/types';
 
 export default function ProjectsPage() {
   const router = useRouter();
-  const { projects, setProjects, addProject, user, setUser, customers } = useStore();
+  const { projects, loadProjects, addProject, customers, loadCustomers, addCustomer } = useStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [showCustomerSelect, setShowCustomerSelect] = useState(false);
 
   useEffect(() => {
-    // Mock user and projects for demo
-    if (!user) {
-      setUser({
-        id: 'demo-user',
-        email: 'demo@example.com',
-        displayName: 'Demo Benutzer',
-        role: 'admin',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-    }
-
-    if (projects.length === 0) {
-      setProjects([
-        {
-          id: 'project-1',
-          name: 'Cloud Migration Kunde A',
-          customer: 'Firma A GmbH',
-          customerId: 'cust-1',
-          description: 'Vollständige Cloud-Migration auf Azure',
-          deadline: new Date('2026-03-15'),
-          proposalValue: 150000,
-          status: 'active',
-          currentStep: 'proposal_created',
-          createdBy: 'demo-user',
-          teamMembers: ['demo-user'],
-          createdAt: new Date('2026-01-15'),
-          updatedAt: new Date(),
-        },
-        {
-          id: 'project-2',
-          name: 'DevOps Transformation',
-          customer: 'Firma B AG',
-          customerId: 'cust-2',
-          description: 'Einführung von CI/CD und Kubernetes',
-          deadline: new Date('2026-04-01'),
-          proposalValue: 85000,
-          status: 'active',
-          currentStep: 'questions_formulated',
-          createdBy: 'demo-user',
-          teamMembers: ['demo-user', 'user-2'],
-          createdAt: new Date('2026-01-20'),
-          updatedAt: new Date(),
-        },
-        {
-          id: 'project-3',
-          name: 'Security Audit',
-          customer: 'Firma C KG',
-          customerId: 'cust-3',
-          description: 'Umfassendes Sicherheitsaudit',
-          proposalValue: 45000,
-          status: 'completed',
-          currentStep: 'proposal_sent',
-          createdBy: 'demo-user',
-          teamMembers: ['demo-user'],
-          createdAt: new Date('2026-01-05'),
-          updatedAt: new Date(),
-        },
-        {
-          id: 'project-4',
-          name: 'Data Platform Modernisierung',
-          customer: 'Firma D SE',
-          customerId: 'cust-4',
-          description: 'Migration auf moderne Data Platform',
-          deadline: new Date('2026-05-01'),
-          proposalValue: 200000,
-          status: 'active',
-          currentStep: 'rfp_received',
-          createdBy: 'demo-user',
-          teamMembers: ['demo-user', 'user-3'],
-          createdAt: new Date('2026-02-01'),
-          updatedAt: new Date(),
-        },
-      ]);
-    }
-  }, [user, projects.length, setUser, setProjects]);
+    loadProjects();
+    loadCustomers();
+  }, [loadProjects, loadCustomers]);
 
   const handleOpenAiModal = () => {
-    if (customers.length === 0) {
-      alert('Bitte legen Sie zuerst einen Kunden an.');
-      return;
-    }
-    setShowCustomerSelect(true);
-  };
-
-  const handleSelectCustomer = (customer: Customer) => {
-    setSelectedCustomer(customer);
-    setShowCustomerSelect(false);
     setIsAiModalOpen(true);
   };
 
   const handleCloseAiModal = () => {
     setIsAiModalOpen(false);
-    setSelectedCustomer(null);
   };
 
-  const handleCreateAiProposal = (proposalData: {
-    projectName?: string;
-    description?: string;
-    requirements?: string[];
-    deadline?: string;
-    budget?: string;
-    notes?: string;
-  }) => {
-    if (!selectedCustomer) return;
+  const handleCreateAiProposal = async (proposalData: ProposalData) => {
+    let customerId: string | undefined;
+    let customerCompanyName: string;
 
-    const newProject: Project = {
-      id: `proj-${Date.now()}`,
-      name: proposalData.projectName || `Neues Angebot für ${selectedCustomer.companyName}`,
-      customer: selectedCustomer.companyName,
-      customerId: selectedCustomer.id,
+    const extractedCompany = proposalData.customerCompany;
+
+    if (extractedCompany) {
+      // Search for existing customer (case-insensitive, partial match)
+      const existingCustomer = customers.find((c) => {
+        const existing = c.companyName.toLowerCase();
+        const search = extractedCompany.toLowerCase();
+        return existing.includes(search) || search.includes(existing);
+      });
+
+      if (existingCustomer) {
+        customerId = existingCustomer.id;
+        customerCompanyName = existingCustomer.companyName;
+      } else {
+        // Create new customer
+        const newCustomer = await addCustomer({
+          companyName: extractedCompany,
+          contactPerson: proposalData.customerContact || 'Nicht angegeben',
+          contactEmail: proposalData.customerEmail || '',
+        });
+        customerId = newCustomer.id;
+        customerCompanyName = newCustomer.companyName;
+      }
+    } else {
+      customerCompanyName = 'Unbekannter Kunde';
+    }
+
+    const newProject = await addProject({
+      name: proposalData.projectName || `Neues Angebot für ${customerCompanyName}`,
+      customer: customerCompanyName,
+      customerId: customerId,
       description: proposalData.description,
       deadline: proposalData.deadline ? new Date(proposalData.deadline.split('.').reverse().join('-')) : undefined,
       status: 'active',
       currentStep: 'rfp_received',
-      createdBy: user?.id || 'current-user',
-      teamMembers: user ? [user.id] : [],
+      createdBy: 'system',
+      teamMembers: [],
       proposalValue: proposalData.budget ? parseFloat(proposalData.budget.replace(',', '.')) : undefined,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    });
 
-    addProject(newProject);
     handleCloseAiModal();
     router.push(`/project/${newProject.id}`);
   };
@@ -342,57 +274,12 @@ export default function ProjectsPage() {
         )}
       </main>
 
-      {/* Customer Selection Modal */}
-      {showCustomerSelect && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/50 z-40"
-            onClick={() => setShowCustomerSelect(false)}
-          />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[80vh] flex flex-col">
-              <div className="px-6 py-4 border-b border-gray-100">
-                <h2 className="text-lg font-semibold text-gray-900">Kunde auswählen</h2>
-                <p className="text-sm text-gray-500">Für welchen Kunden möchten Sie ein Angebot erstellen?</p>
-              </div>
-              <div className="flex-1 overflow-y-auto p-4">
-                {customers.length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">Keine Kunden vorhanden</p>
-                ) : (
-                  <div className="space-y-2">
-                    {customers.map((customer) => (
-                      <button
-                        key={customer.id}
-                        onClick={() => handleSelectCustomer(customer)}
-                        className="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-colors"
-                      >
-                        <p className="font-medium text-gray-900">{customer.companyName}</p>
-                        <p className="text-sm text-gray-500">{customer.contactPerson}</p>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="px-6 py-4 border-t border-gray-100">
-                <Button variant="outline" onClick={() => setShowCustomerSelect(false)} className="w-full">
-                  Abbrechen
-                </Button>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-
       {/* AI Proposal Modal */}
-      {selectedCustomer && (
-        <AiProposalModal
-          isOpen={isAiModalOpen}
-          onClose={handleCloseAiModal}
-          customerId={selectedCustomer.id}
-          customerName={selectedCustomer.companyName}
-          onCreateProposal={handleCreateAiProposal}
-        />
-      )}
+      <AiProposalModal
+        isOpen={isAiModalOpen}
+        onClose={handleCloseAiModal}
+        onCreateProposal={handleCreateAiProposal}
+      />
     </div>
   );
 }

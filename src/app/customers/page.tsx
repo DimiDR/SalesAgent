@@ -3,20 +3,21 @@
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Plus, Search, Building2, Mail, Phone, MapPin, Calendar, FileText, ChevronDown, ChevronUp, Edit2, Trash2, X, ExternalLink, Sparkles } from 'lucide-react';
+import { Plus, Search, Building2, Mail, Phone, MapPin, Calendar, FileText, ChevronDown, ChevronUp, Edit2, Trash2, X, ExternalLink, Sparkles, Mic, MicOff, Loader2 } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
+import { Input, Textarea } from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import AiProposalModal from '@/components/ui/AiProposalModal';
 import { useStore } from '@/store/useStore';
+import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { Customer, CustomerProposal, CustomerAppointment, Project } from '@/types';
 
 export default function CustomersPage() {
   const router = useRouter();
-  const { customers, setCustomers, addCustomer, updateCustomer, removeCustomer, projects, addProject } = useStore();
+  const { customers, loadCustomers, addCustomer, updateCustomer, removeCustomer, projects, loadProjects, addProject, addAppointment, deleteAppointment: storeDeleteAppointment } = useStore();
 
   // Dynamisch Proposals aus Projects laden basierend auf customerId
   const getCustomerProposals = (customerId: string): CustomerProposal[] => {
@@ -75,97 +76,63 @@ export default function CustomersPage() {
     notes: '',
   });
 
-  useEffect(() => {
-    // Mock data for demo - ohne proposals (werden dynamisch aus Projects geladen)
-    if (customers.length === 0) {
-      setCustomers([
-        {
-          id: 'cust-1',
-          companyName: 'Firma A GmbH',
-          industry: 'IT & Software',
-          contactPerson: 'Dr. Hans Weber',
-          contactEmail: 'h.weber@firma-a.de',
-          contactPhone: '+49 89 123456',
-          address: {
-            street: 'Hauptstraße 42',
-            city: 'München',
-            postalCode: '80331',
-            country: 'Deutschland',
-          },
-          website: 'https://www.firma-a.de',
-          notes: 'Langjähriger Kunde, bevorzugt Azure-Lösungen',
-          proposals: [], // Wird dynamisch aus Projects geladen
-          appointments: [
-            { id: 'apt-1', title: 'Kickoff Meeting', date: new Date('2026-01-18'), type: 'meeting', notes: 'Initiales Projektmeeting zur Cloud Migration' },
-            { id: 'apt-2', title: 'Follow-up Call', date: new Date('2026-02-05'), type: 'call', notes: 'Statusbesprechung' },
-          ],
-          createdAt: new Date('2025-06-15'),
-          updatedAt: new Date(),
-        },
-        {
-          id: 'cust-2',
-          companyName: 'Firma B AG',
-          industry: 'Finanzdienstleistungen',
-          contactPerson: 'Maria Schmidt',
-          contactEmail: 'm.schmidt@firma-b.de',
-          contactPhone: '+49 69 987654',
-          address: {
-            street: 'Bankstraße 100',
-            city: 'Frankfurt',
-            postalCode: '60311',
-            country: 'Deutschland',
-          },
-          notes: 'Sehr sicherheitsbewusst, strenge Compliance-Anforderungen',
-          proposals: [],
-          appointments: [
-            { id: 'apt-3', title: 'Anforderungsworkshop', date: new Date('2026-01-25'), type: 'meeting', notes: 'Detailierte Anforderungsaufnahme für DevOps' },
-          ],
-          createdAt: new Date('2025-08-20'),
-          updatedAt: new Date(),
-        },
-        {
-          id: 'cust-3',
-          companyName: 'Firma C KG',
-          industry: 'Produktion',
-          contactPerson: 'Thomas Braun',
-          contactEmail: 't.braun@firma-c.de',
-          contactPhone: '+49 711 456789',
-          address: {
-            street: 'Industrieweg 5',
-            city: 'Stuttgart',
-            postalCode: '70173',
-            country: 'Deutschland',
-          },
-          proposals: [],
-          appointments: [],
-          createdAt: new Date('2025-12-01'),
-          updatedAt: new Date(),
-        },
-        {
-          id: 'cust-4',
-          companyName: 'Firma D SE',
-          industry: 'E-Commerce',
-          contactPerson: 'Lisa Hoffmann',
-          contactEmail: 'l.hoffmann@firma-d.de',
-          contactPhone: '+49 30 112233',
-          address: {
-            street: 'Digitalplatz 1',
-            city: 'Berlin',
-            postalCode: '10117',
-            country: 'Deutschland',
-          },
-          website: 'https://www.firma-d.de',
-          notes: 'Startup, sehr agil, kurze Entscheidungswege',
-          proposals: [],
-          appointments: [
-            { id: 'apt-4', title: 'Präsentation Lösungskonzept', date: new Date('2026-02-10'), type: 'presentation', notes: 'Vorstellung des technischen Konzepts' },
-          ],
-          createdAt: new Date('2026-01-05'),
-          updatedAt: new Date(),
-        },
-      ]);
+  // Speech input state
+  const [speechTranscript, setSpeechTranscript] = useState('');
+  const [speechParsing, setSpeechParsing] = useState(false);
+  const [speechError, setSpeechError] = useState('');
+
+  const handleSpeechResult = (text: string) => {
+    setSpeechTranscript((prev) => (prev ? `${prev} ${text}` : text));
+  };
+
+  const { isListening, interimTranscript, isSupported: speechSupported, toggleListening } =
+    useSpeechRecognition({ onTranscript: handleSpeechResult });
+
+  const handleSpeechToCustomer = async () => {
+    const text = speechTranscript.trim();
+    if (!text) return;
+
+    setSpeechParsing(true);
+    setSpeechError('');
+
+    try {
+      const response = await fetch('/api/ai/parse-customer-from-speech', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript: text }),
+      });
+      const data = await response.json();
+
+      if (data.error) {
+        setSpeechError(data.error);
+      } else if (data.customer) {
+        const c = data.customer;
+        setFormData({
+          companyName: (c.companyName as string) || formData.companyName,
+          industry: (c.industry as string) || formData.industry,
+          contactPerson: (c.contactPerson as string) || formData.contactPerson,
+          contactEmail: (c.contactEmail as string) || formData.contactEmail,
+          contactPhone: (c.contactPhone as string) || formData.contactPhone,
+          website: (c.website as string) || formData.website,
+          notes: (c.notes as string) || formData.notes,
+          street: (c.street as string) || formData.street,
+          city: (c.city as string) || formData.city,
+          postalCode: (c.postalCode as string) || formData.postalCode,
+          country: (c.country as string) || formData.country,
+        });
+        setSpeechTranscript('');
+      }
+    } catch {
+      setSpeechError('Fehler bei der Verarbeitung. Bitte versuchen Sie es erneut.');
+    } finally {
+      setSpeechParsing(false);
     }
-  }, [customers.length, setCustomers]);
+  };
+
+  useEffect(() => {
+    loadCustomers();
+    loadProjects();
+  }, [loadCustomers, loadProjects]);
 
   const resetForm = () => {
     setFormData({
@@ -238,7 +205,7 @@ export default function CustomersPage() {
     setSelectedCustomerForAiProposal(null);
   };
 
-  const handleCreateAiProposal = (proposalData: {
+  const handleCreateAiProposal = async (proposalData: {
     projectName?: string;
     description?: string;
     requirements?: string[];
@@ -248,9 +215,7 @@ export default function CustomersPage() {
   }) => {
     if (!selectedCustomerForAiProposal) return;
 
-    // Create a new project for the customer
-    const newProject: Project = {
-      id: `proj-${Date.now()}`,
+    const newProject = await addProject({
       name: proposalData.projectName || `Neues Angebot für ${selectedCustomerForAiProposal.companyName}`,
       customer: selectedCustomerForAiProposal.companyName,
       customerId: selectedCustomerForAiProposal.id,
@@ -258,23 +223,17 @@ export default function CustomersPage() {
       deadline: proposalData.deadline ? new Date(proposalData.deadline.split('.').reverse().join('-')) : undefined,
       status: 'active',
       currentStep: 'rfp_received',
-      createdBy: 'current-user',
+      createdBy: 'system',
       teamMembers: [],
       proposalValue: proposalData.budget ? parseFloat(proposalData.budget.replace(',', '.')) : undefined,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    });
 
-    addProject(newProject);
     closeAiProposalModal();
-
-    // Navigate to the new project
     router.push(`/project/${newProject.id}`);
   };
 
-  const handleSave = () => {
-    const customerData: Customer = {
-      id: editingCustomer?.id || `cust-${Date.now()}`,
+  const handleSave = async () => {
+    const customerFields = {
       companyName: formData.companyName,
       industry: formData.industry || undefined,
       contactPerson: formData.contactPerson,
@@ -288,51 +247,35 @@ export default function CustomersPage() {
         postalCode: formData.postalCode,
         country: formData.country,
       } : undefined,
-      proposals: editingCustomer?.proposals || [],
-      appointments: editingCustomer?.appointments || [],
-      createdAt: editingCustomer?.createdAt || new Date(),
-      updatedAt: new Date(),
     };
 
     if (editingCustomer) {
-      updateCustomer(editingCustomer.id, customerData);
+      await updateCustomer(editingCustomer.id, customerFields);
     } else {
-      addCustomer(customerData);
+      await addCustomer(customerFields);
     }
     closeModal();
   };
 
-  const handleAddAppointment = () => {
+  const handleAddAppointment = async () => {
     if (selectedCustomerForAppointment && appointmentData.title && appointmentData.date) {
-      const newAppointment: CustomerAppointment = {
-        id: `apt-${Date.now()}`,
+      await addAppointment(selectedCustomerForAppointment.id, {
         title: appointmentData.title,
         date: new Date(appointmentData.date),
         type: appointmentData.type,
         notes: appointmentData.notes || undefined,
-      };
-
-      updateCustomer(selectedCustomerForAppointment.id, {
-        appointments: [...selectedCustomerForAppointment.appointments, newAppointment],
-        updatedAt: new Date(),
       });
       closeAppointmentModal();
     }
   };
 
-  const handleDeleteAppointment = (customerId: string, appointmentId: string) => {
-    const customer = customers.find(c => c.id === customerId);
-    if (customer) {
-      updateCustomer(customerId, {
-        appointments: customer.appointments.filter(a => a.id !== appointmentId),
-        updatedAt: new Date(),
-      });
-    }
+  const handleDeleteAppointment = async (customerId: string, appointmentId: string) => {
+    await storeDeleteAppointment(customerId, appointmentId);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Möchten Sie diesen Kunden wirklich löschen?')) {
-      removeCustomer(id);
+      await removeCustomer(id);
     }
   };
 
@@ -646,6 +589,74 @@ export default function CustomersPage() {
       {/* Add/Edit Customer Modal */}
       <Modal isOpen={isModalOpen} onClose={closeModal} title={editingCustomer ? 'Kunde bearbeiten' : 'Neuer Kunde'} size="lg">
         <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
+          {/* Speech Input */}
+          {!editingCustomer && speechSupported && (
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="w-4 h-4 text-purple-600" />
+                <h4 className="text-sm font-medium text-purple-800">Per Sprache anlegen</h4>
+              </div>
+              <p className="text-xs text-purple-600 mb-3">
+                Beschreiben Sie den Kunden z.B.: &quot;Neuer Kunde Siemens AG, Branche Maschinenbau, Ansprechpartner ist Herr Dr. Weber, E-Mail weber at siemens punkt de, Telefon 089 1234567, Adresse Werner-von-Siemens-Straße 1, 80333 München&quot;
+              </p>
+              <div className="flex gap-2 mb-2">
+                <button
+                  onClick={toggleListening}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isListening
+                      ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                      : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                  }`}
+                >
+                  {isListening ? (
+                    <>
+                      <MicOff className="w-4 h-4" />
+                      Aufnahme stoppen
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="w-4 h-4" />
+                      Aufnahme starten
+                    </>
+                  )}
+                </button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleSpeechToCustomer}
+                  disabled={!speechTranscript.trim() || speechParsing}
+                >
+                  {speechParsing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                      Erkennung...
+                    </>
+                  ) : (
+                    'Felder ausfüllen'
+                  )}
+                </Button>
+              </div>
+              {(speechTranscript || interimTranscript) && (
+                <div className="bg-white border border-purple-100 rounded p-2 text-sm text-gray-700">
+                  {speechTranscript}
+                  {interimTranscript && (
+                    <span className="text-gray-400 italic"> {interimTranscript}</span>
+                  )}
+                </div>
+              )}
+              <textarea
+                className="w-full mt-2 px-3 py-2 border border-purple-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                rows={2}
+                placeholder="Oder Text hier eingeben..."
+                value={speechTranscript}
+                onChange={(e) => setSpeechTranscript(e.target.value)}
+              />
+              {speechError && (
+                <p className="text-xs text-red-600 mt-1">{speechError}</p>
+              )}
+            </div>
+          )}
+
           {/* Company Info */}
           <div className="grid grid-cols-2 gap-4">
             <Input
@@ -724,12 +735,11 @@ export default function CustomersPage() {
 
           {/* Notes */}
           <div className="border-t pt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notizen</label>
-            <textarea
+            <Textarea
+              label="Notizen"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Zusätzliche Informationen über den Kunden..."
             />
           </div>
@@ -774,16 +784,13 @@ export default function CustomersPage() {
               </select>
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notizen</label>
-            <textarea
-              value={appointmentData.notes}
-              onChange={(e) => setAppointmentData({ ...appointmentData, notes: e.target.value })}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Terminnotizen..."
-            />
-          </div>
+          <Textarea
+            label="Notizen"
+            value={appointmentData.notes}
+            onChange={(e) => setAppointmentData({ ...appointmentData, notes: e.target.value })}
+            rows={3}
+            placeholder="Terminnotizen..."
+          />
         </div>
 
         <div className="flex justify-end gap-3 mt-6 pt-4 border-t">

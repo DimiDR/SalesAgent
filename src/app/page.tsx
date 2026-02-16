@@ -1,22 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { Sparkles, FileText, Users, TrendingUp, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
-import { useStore } from '@/store/useStore';
 
 export default function Home() {
-  const router = useRouter();
-  const { user } = useStore();
-
-  useEffect(() => {
-    // If user is logged in, redirect to dashboard
-    if (user) {
-      router.push('/dashboard');
-    }
-  }, [user, router]);
 
   const features = [
     {
@@ -52,14 +40,9 @@ export default function Home() {
             </div>
             <span className="font-bold text-xl text-gray-900">SalesAgent</span>
           </div>
-          <div className="flex items-center gap-4">
-            <Link href="/auth/login">
-              <Button variant="ghost">Anmelden</Button>
-            </Link>
-            <Link href="/dashboard">
-              <Button>Demo starten</Button>
-            </Link>
-          </div>
+          <Link href="/dashboard">
+            <Button>Dashboard</Button>
+          </Link>
         </nav>
       </header>
 

@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSAPContextForPrompt } from '@/lib/sap-terminology';
+import { chapterSchema, schemaToPrompt, validateArray, DEFAULT_CHAPTER_TITLES } from '@/lib/ai-schema';
+import { extractJson } from '@/lib/ai';
 
 const XAI_API_KEY = process.env.XAI_API_KEY;
 const XAI_API_URL = process.env.XAI_API_URL || 'https://api.x.ai/v1';
@@ -14,16 +17,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const systemPrompt = `Du bist ein erfahrener Angebotsschreiber. Erstelle eine professionelle Kapitelstruktur für ein Beratungsangebot. Die Struktur sollte:
-- Alle wichtigen Aspekte des RFP adressieren
-- Dem Standard-Format für Beratungsangebote folgen
+    const fieldDescription = schemaToPrompt(chapterSchema, 'Kapitel');
+
+    const systemPrompt = `Du bist ein erfahrener Angebotsschreiber für SAP-Beratungsprojekte. Erstelle eine professionelle Kapitelstruktur für ein SAP-Beratungsangebot. Die Struktur sollte:
+- Alle wichtigen Aspekte des RFP adressieren, insbesondere SAP-spezifische Themen
+- Dem Standard-Format für SAP-Beratungsangebote folgen
+- SAP Activate-Methodik und Migrationsstrategie berücksichtigen
 - Klar und logisch aufgebaut sein
 
-Gib die Struktur als JSON-Array von Kapiteln zurück:
-- id: eindeutige ID
-- title: Kapitelüberschrift
-- order: Reihenfolge
-- status: 'pending'`;
+${getSAPContextForPrompt()}
+
+Gib die Struktur als JSON-Array von Kapiteln zurück.
+${fieldDescription}`;
 
     if (XAI_API_KEY && analysis) {
       const response = await fetch(`${XAI_API_URL}/chat/completions`, {
@@ -33,7 +38,7 @@ Gib die Struktur als JSON-Array von Kapiteln zurück:
           Authorization: `Bearer ${XAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'grok-2-latest',
+          model: 'grok-4-1-fast-non-reasoning',
           messages: [
             { role: 'system', content: systemPrompt },
             {
@@ -52,18 +57,17 @@ Gib die Struktur als JSON-Array von Kapiteln zurück:
       const data = await response.json();
       const structureText = data.choices[0]?.message?.content;
 
-      const jsonMatch = structureText.match(/```json\n?([\s\S]*?)\n?```/) ||
-                        structureText.match(/\[[\s\S]*\]/);
+      const parsed = extractJson<unknown[]>(structureText);
 
-      if (jsonMatch) {
-        const chapters = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+      if (parsed && Array.isArray(parsed)) {
+        const chapters = validateArray(parsed, chapterSchema);
         return NextResponse.json({
           id: crypto.randomUUID(),
           projectId,
           templateId,
-          chapters: chapters.map((ch: Record<string, unknown>, idx: number) => ({
+          chapters: chapters.map((ch, idx) => ({
             ...ch,
-            id: ch.id || crypto.randomUUID(),
+            id: crypto.randomUUID(),
             order: ch.order || idx + 1,
             content: '',
             status: 'pending',
@@ -76,23 +80,18 @@ Gib die Struktur als JSON-Array von Kapiteln zurück:
       }
     }
 
-    // Fallback mock structure
+    // Fallback mock structure using default chapter titles
     return NextResponse.json({
       id: crypto.randomUUID(),
       projectId,
       templateId,
-      chapters: [
-        { id: crypto.randomUUID(), title: 'Deckblatt', order: 1, content: '', status: 'pending' },
-        { id: crypto.randomUUID(), title: 'Executive Summary', order: 2, content: '', status: 'pending' },
-        { id: crypto.randomUUID(), title: 'Ausgangssituation und Zielsetzung', order: 3, content: '', status: 'pending' },
-        { id: crypto.randomUUID(), title: 'Unser Lösungsansatz', order: 4, content: '', status: 'pending' },
-        { id: crypto.randomUUID(), title: 'Projektmethodik', order: 5, content: '', status: 'pending' },
-        { id: crypto.randomUUID(), title: 'Zeitplan und Meilensteine', order: 6, content: '', status: 'pending' },
-        { id: crypto.randomUUID(), title: 'Unser Team', order: 7, content: '', status: 'pending' },
-        { id: crypto.randomUUID(), title: 'Investition', order: 8, content: '', status: 'pending' },
-        { id: crypto.randomUUID(), title: 'Warum wir', order: 9, content: '', status: 'pending' },
-        { id: crypto.randomUUID(), title: 'Anhang', order: 10, content: '', status: 'pending' },
-      ],
+      chapters: DEFAULT_CHAPTER_TITLES.map((title, idx) => ({
+        id: crypto.randomUUID(),
+        title,
+        order: idx + 1,
+        content: '',
+        status: 'pending',
+      })),
       status: 'draft',
       version: 1,
       createdAt: new Date().toISOString(),

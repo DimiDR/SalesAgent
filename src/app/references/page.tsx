@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Plus, Search, Award, Building2, Calendar, Briefcase, Edit2, Trash2, ChevronDown, ChevronUp, Quote, Globe, Lock } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import { Card, CardContent } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
+import { Input, Textarea } from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
@@ -14,7 +14,7 @@ import { Reference, Customer } from '@/types';
 
 export default function ReferencesPage() {
   const router = useRouter();
-  const { references, setReferences, addReference, updateReference, removeReference, customers } = useStore();
+  const { references, loadReferences, addReference, updateReference, removeReference, customers, loadCustomers } = useStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -38,62 +38,9 @@ export default function ReferencesPage() {
   });
 
   useEffect(() => {
-    // Mock data for demo
-    if (references.length === 0 && customers.length > 0) {
-      setReferences([
-        {
-          id: 'ref-1',
-          customerId: 'cust-1',
-          customerName: 'Firma A GmbH',
-          projectTitle: 'Cloud Migration & Modernisierung',
-          description: 'Vollständige Migration der On-Premise-Infrastruktur in die Azure Cloud. Implementierung von Kubernetes, CI/CD-Pipelines und Infrastructure as Code.',
-          industry: 'IT & Software',
-          technologies: ['Azure', 'Kubernetes', 'Terraform', 'GitHub Actions'],
-          projectDuration: '8 Monate',
-          projectValue: 450000,
-          completionDate: new Date('2025-09-15'),
-          contactPerson: 'Dr. Hans Weber',
-          testimonial: 'Hervorragende Zusammenarbeit! Das Team hat unsere Erwartungen übertroffen und die Migration reibungslos durchgeführt.',
-          isPublic: true,
-          createdAt: new Date('2025-10-01'),
-          updatedAt: new Date(),
-        },
-        {
-          id: 'ref-2',
-          customerId: 'cust-2',
-          customerName: 'Firma B AG',
-          projectTitle: 'DevOps Transformation',
-          description: 'Einführung von DevOps-Praktiken und Automatisierung der Software-Entwicklungsprozesse. Aufbau einer vollständigen CI/CD-Pipeline mit Sicherheitsintegration.',
-          industry: 'Finanzdienstleistungen',
-          technologies: ['Jenkins', 'Docker', 'SonarQube', 'Vault'],
-          projectDuration: '6 Monate',
-          projectValue: 280000,
-          completionDate: new Date('2025-11-20'),
-          contactPerson: 'Maria Schmidt',
-          testimonial: 'Die Deployment-Zeit wurde von Wochen auf Stunden reduziert. Eine echte Transformation unserer Entwicklungsprozesse.',
-          isPublic: true,
-          createdAt: new Date('2025-12-01'),
-          updatedAt: new Date(),
-        },
-        {
-          id: 'ref-3',
-          customerId: 'cust-4',
-          customerName: 'Firma D SE',
-          projectTitle: 'E-Commerce Plattform Relaunch',
-          description: 'Kompletter Relaunch der E-Commerce-Plattform mit modernem Tech-Stack. Implementierung von Microservices-Architektur und Headless CMS.',
-          industry: 'E-Commerce',
-          technologies: ['Next.js', 'Node.js', 'PostgreSQL', 'Redis', 'Stripe'],
-          projectDuration: '10 Monate',
-          projectValue: 520000,
-          completionDate: new Date('2025-12-10'),
-          contactPerson: 'Lisa Hoffmann',
-          isPublic: false,
-          createdAt: new Date('2026-01-05'),
-          updatedAt: new Date(),
-        },
-      ]);
-    }
-  }, [references.length, customers.length, setReferences]);
+    loadReferences();
+    loadCustomers();
+  }, [loadReferences, loadCustomers]);
 
   // Get customer name by ID
   const getCustomerName = (customerId: string): string => {
@@ -148,12 +95,11 @@ export default function ReferencesPage() {
     resetForm();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const customerName = getCustomerName(formData.customerId);
     const selectedCustomer = customers.find(c => c.id === formData.customerId);
 
-    const referenceData: Reference = {
-      id: editingReference?.id || `ref-${Date.now()}`,
+    const referenceFields = {
       customerId: formData.customerId,
       customerName: customerName,
       projectTitle: formData.projectTitle,
@@ -168,21 +114,19 @@ export default function ReferencesPage() {
       contactPerson: formData.contactPerson || selectedCustomer?.contactPerson || undefined,
       testimonial: formData.testimonial || undefined,
       isPublic: formData.isPublic,
-      createdAt: editingReference?.createdAt || new Date(),
-      updatedAt: new Date(),
     };
 
     if (editingReference) {
-      updateReference(editingReference.id, referenceData);
+      await updateReference(editingReference.id, referenceFields);
     } else {
-      addReference(referenceData);
+      await addReference(referenceFields);
     }
     closeModal();
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Möchten Sie diese Referenz wirklich löschen?')) {
-      removeReference(id);
+      await removeReference(id);
     }
   };
 
@@ -447,17 +391,13 @@ export default function ReferencesPage() {
           </div>
 
           {/* Description */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Beschreibung *</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Beschreiben Sie das Projekt und die durchgeführten Leistungen..."
-              required
-            />
-          </div>
+          <Textarea
+            label="Beschreibung *"
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            rows={3}
+            placeholder="Beschreiben Sie das Projekt und die durchgeführten Leistungen..."
+          />
 
           {/* Technologies */}
           <Input
@@ -503,16 +443,13 @@ export default function ReferencesPage() {
               placeholder="Name des Kundenansprechpartners"
               className="mb-4"
             />
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Testimonial / Zitat</label>
-              <textarea
-                value={formData.testimonial}
-                onChange={(e) => setFormData({ ...formData, testimonial: e.target.value })}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Kundenzitat oder Feedback zum Projekt..."
-              />
-            </div>
+            <Textarea
+              label="Testimonial / Zitat"
+              value={formData.testimonial}
+              onChange={(e) => setFormData({ ...formData, testimonial: e.target.value })}
+              rows={3}
+              placeholder="Kundenzitat oder Feedback zum Projekt..."
+            />
           </div>
 
           {/* Visibility */}

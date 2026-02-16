@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSAPContextForPrompt } from '@/lib/sap-terminology';
 
 const XAI_API_KEY = process.env.XAI_API_KEY;
 const XAI_API_URL = process.env.XAI_API_URL || 'https://api.x.ai/v1';
@@ -14,11 +15,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const systemPrompt = `Du bist ein erfahrener Angebotsschreiber für IT-Beratungsprojekte. Schreibe den Inhalt für das Kapitel "${chapterTitle}" eines Beratungsangebots.
+    const systemPrompt = `Du bist ein erfahrener Angebotsschreiber für SAP-Beratungsprojekte. Schreibe den Inhalt für das Kapitel "${chapterTitle}" eines SAP-Beratungsangebots.
+
+${getSAPContextForPrompt()}
 
 Der Text sollte:
-- Professionell und überzeugend sein
-- Auf die spezifischen Kundenanforderungen eingehen
+- Professionell und überzeugend sein, mit korrekter SAP-Terminologie
+- Auf die spezifischen SAP-Anforderungen des Kunden eingehen
+- SAP Best Practices und Methodik (SAP Activate) berücksichtigen
 - Klar strukturiert sein (Markdown-Format)
 - Circa 200-400 Wörter umfassen
 
@@ -32,7 +36,7 @@ Gib nur den Kapitelinhalt zurück, ohne zusätzliche Erklärungen.`;
           Authorization: `Bearer ${XAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'grok-2-latest',
+          model: 'grok-4-1-fast-non-reasoning',
           messages: [
             { role: 'system', content: systemPrompt },
             {
@@ -63,52 +67,59 @@ Schreibe den Inhalt für das Kapitel "${chapterTitle}".`,
     const mockContents: Record<string, string> = {
       'Executive Summary': `## Executive Summary
 
-Wir freuen uns, Ihnen unser Angebot für Ihr Transformationsprojekt zu unterbreiten. Als erfahrener Partner im Bereich IT-Beratung bieten wir eine ganzheitliche Lösung, die technische Exzellenz mit nachhaltigem Wissenstransfer verbindet.
+Wir freuen uns, Ihnen unser Angebot für Ihre S/4HANA-Transformation zu unterbreiten. Als erfahrener SAP-Beratungspartner bieten wir eine ganzheitliche Lösung, die SAP Best Practices mit nachhaltigem Wissenstransfer verbindet.
 
 **Unsere Lösung umfasst:**
-- Vollständige Analyse und Planung
-- Implementierung nach Best Practices
-- Umfassende Schulung Ihres Teams
-- Kontinuierlicher Support
+- Umfassende Analyse Ihrer bestehenden SAP-Systemlandschaft
+- S/4HANA-Migration nach SAP Activate-Methodik
+- Fit-to-Standard-Ansatz mit Clean-Core-Strategie
+- Implementierung moderner SAP Fiori-Oberflächen
+- Schulung Ihrer Key-User und Endanwender
 
-Wir sind überzeugt, der ideale Partner für dieses Projekt zu sein und freuen uns auf die Zusammenarbeit.`,
+Wir sind überzeugt, der ideale Partner für Ihre SAP-Transformation zu sein und freuen uns auf die Zusammenarbeit.`,
 
       'Unser Lösungsansatz': `## Unser Lösungsansatz
 
-Basierend auf unserer Analyse schlagen wir einen dreistufigen Ansatz vor:
+Basierend auf unserer Analyse Ihres RFP und der aktuellen SAP-Systemlandschaft schlagen wir folgenden Ansatz vor:
 
-### Phase 1: Assessment & Planung
-- Detaillierte Ist-Analyse
-- Erstellung der Zielarchitektur
-- Migrationsplan mit Risikobewertung
+### Discover & Prepare Phase
+- SAP Readiness Check und Custom Code Analyse
+- Fit-to-Standard Workshops für alle relevanten Module (FI/CO, MM, SD)
+- Definition der Migrationsstrategie (Greenfield/Brownfield/Bluefield)
 
-### Phase 2: Implementierung
-- Schrittweise Umsetzung
-- Kontinuierliches Testing
-- Regelmäßige Status-Updates
+### Explore & Realize Phase
+- Konfiguration der S/4HANA-Standardprozesse
+- Entwicklung notwendiger Erweiterungen (ABAP on HANA, RAP, Fiori)
+- Integration via SAP BTP/Integration Suite
+- Datenmigration und Testzyklen
 
-### Phase 3: Optimierung & Übergabe
-- Performance-Optimierung
-- Schulungen und Dokumentation
-- Übergabe an den Regelbetrieb`,
+### Deploy & Run Phase
+- Cutover-Planung und Go-Live-Unterstützung
+- Hypercare-Phase mit dediziertem Support
+- Übergabe an den Regelbetrieb und Wissenstransfer`,
 
       'Unser Team': `## Unser Team
 
-Für Ihr Projekt stellen wir ein erfahrenes Team zusammen:
+Für Ihr SAP-Projekt stellen wir ein erfahrenes, zertifiziertes Team zusammen:
 
 **Projektleitung:**
-- Erfahrener Projektmanager mit PMP-Zertifizierung
+- SAP-zertifizierter Projektmanager mit Erfahrung in S/4HANA-Transformationen
 
-**Technisches Team:**
-- Senior Architects mit Cloud-Expertise
-- Erfahrene Entwickler und DevOps-Engineers
-- Security-Spezialisten
+**SAP-Berater:**
+- Senior S/4HANA Solution Architect
+- SAP FI/CO-Berater mit Migrationserfahrung
+- SAP MM/SD-Berater für Logistikprozesse
 
-**Support:**
-- Dedizierter Account Manager
-- 24/7 Support-Hotline
+**Entwicklung:**
+- ABAP on HANA / RAP-Entwickler
+- SAP Fiori/SAPUI5-Entwickler
+- SAP BTP Integration-Spezialist
 
-Alle Teammitglieder verfügen über relevante Zertifizierungen und umfangreiche Projekterfahrung.`,
+**Basis & Operations:**
+- SAP Basis-Berater für Systemlandschaft und Cloud-Migration
+- Dedizierter SAP Support nach Go-Live
+
+Alle Teammitglieder verfügen über relevante SAP-Zertifizierungen und umfangreiche Projekterfahrung.`,
     };
 
     const content = mockContents[chapterTitle] ||

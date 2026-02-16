@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSAPContextForPrompt } from '@/lib/sap-terminology';
+import { agendaItemSchema, schemaToPrompt, validateArray } from '@/lib/ai-schema';
+import { extractJson } from '@/lib/ai';
 
 const XAI_API_KEY = process.env.XAI_API_KEY;
 const XAI_API_URL = process.env.XAI_API_URL || 'https://api.x.ai/v1';
@@ -14,17 +17,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const systemPrompt = `Du bist ein erfahrener Projektmanager. Erstelle eine professionelle Meeting-Agenda für ein Klärungsgespräch mit dem Kunden. Die Agenda sollte:
+    const fieldDescription = schemaToPrompt(agendaItemSchema, 'Agendapunkt');
+
+    const systemPrompt = `Du bist ein erfahrener SAP-Projektmanager. Erstelle eine professionelle Meeting-Agenda für ein Klärungsgespräch mit dem Kunden zu einem SAP-Projekt. Die Agenda sollte:
 - Strukturiert und zeitlich geplant sein
 - Alle offenen Punkte aus dem RFP adressieren
+- SAP-spezifische Themen berücksichtigen (Systemlandschaft, Module, Migrationsstrategie, Lizenzmodell)
 - Raum für Fragen und Diskussion lassen
+- Sich an SAP Activate-Phasen orientieren (Discover, Prepare, Explore, Realize, Deploy, Run)
 
-Gib die Agenda als JSON-Objekt mit einem "agenda"-Array zurück. Jedes Element hat:
-- id: eindeutige ID
-- title: Agendapunkt
-- description: Kurze Beschreibung
-- duration: Geschätzte Dauer in Minuten
-- order: Reihenfolge`;
+${getSAPContextForPrompt()}
+
+Gib die Agenda als JSON-Objekt mit einem "agenda"-Array zurück.
+${fieldDescription}`;
 
     if (XAI_API_KEY && analysis) {
       const response = await fetch(`${XAI_API_URL}/chat/completions`, {
@@ -34,7 +39,7 @@ Gib die Agenda als JSON-Objekt mit einem "agenda"-Array zurück. Jedes Element h
           Authorization: `Bearer ${XAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'grok-2-latest',
+          model: 'grok-4-1-fast-non-reasoning',
           messages: [
             { role: 'system', content: systemPrompt },
             {
@@ -53,19 +58,18 @@ Gib die Agenda als JSON-Objekt mit einem "agenda"-Array zurück. Jedes Element h
       const data = await response.json();
       const agendaText = data.choices[0]?.message?.content;
 
-      const jsonMatch = agendaText.match(/```json\n?([\s\S]*?)\n?```/) ||
-                        agendaText.match(/\{[\s\S]*\}/);
+      const parsed = extractJson<Record<string, unknown>>(agendaText);
 
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
-        const agenda = parsed.agenda || parsed;
+      if (parsed) {
+        const rawAgenda = Array.isArray(parsed) ? parsed : (parsed.agenda as unknown[] || []);
+        const agenda = validateArray(rawAgenda, agendaItemSchema);
 
         return NextResponse.json({
           id: crypto.randomUUID(),
           projectId,
-          agenda: agenda.map((item: Record<string, unknown>, idx: number) => ({
+          agenda: agenda.map((item, idx) => ({
             ...item,
-            id: item.id || crypto.randomUUID(),
+            id: crypto.randomUUID(),
             order: item.order || idx + 1,
           })),
           createdAt: new Date().toISOString(),
@@ -82,36 +86,36 @@ Gib die Agenda als JSON-Objekt mit einem "agenda"-Array zurück. Jedes Element h
         {
           id: crypto.randomUUID(),
           title: 'Begrüßung und Vorstellung',
-          description: 'Kurze Vorstellung der Teilnehmer',
+          description: 'Vorstellung der Teilnehmer und Projektteams',
           duration: 10,
           order: 1,
         },
         {
           id: crypto.randomUUID(),
-          title: 'Projektverständnis klären',
-          description: 'Zusammenfassung des RFP und Klärung offener Punkte',
+          title: 'SAP-Systemlandschaft & Ist-Analyse',
+          description: 'Aktuelle SAP-Systemlandschaft (ECC Release, Module, Eigenentwicklungen) und Pain-Points',
           duration: 20,
           order: 2,
         },
         {
           id: crypto.randomUUID(),
-          title: 'Technische Anforderungen',
-          description: 'Diskussion der technischen Details',
+          title: 'Anforderungen & Zielbild S/4HANA',
+          description: 'Diskussion der fachlichen Anforderungen, Ziel-Module und Migrationsstrategie (Greenfield/Brownfield)',
           duration: 25,
           order: 3,
         },
         {
           id: crypto.randomUUID(),
-          title: 'Budget und Timeline',
-          description: 'Klärung des Budgetrahmens',
-          duration: 15,
+          title: 'Projektansatz & SAP Activate',
+          description: 'Vorstellung des Projektansatzes, Fit-to-Standard, Timeline und Lizenzmodell (RISE/GROW)',
+          duration: 20,
           order: 4,
         },
         {
           id: crypto.randomUUID(),
-          title: 'Nächste Schritte',
-          description: 'Vereinbarung des weiteren Vorgehens',
-          duration: 10,
+          title: 'Budget, Ressourcen & nächste Schritte',
+          description: 'Klärung des Budgetrahmens, Ressourcenplanung und Vereinbarung des weiteren Vorgehens',
+          duration: 15,
           order: 5,
         },
       ],

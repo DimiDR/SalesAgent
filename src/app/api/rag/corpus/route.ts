@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRAGClient, getProjectCorpusDisplayName } from '@/lib/vertex-rag';
+import { getRAGClient, getProjectCorpusDisplayName } from '@/lib/supabase-rag';
 
 /**
  * POST /api/rag/corpus
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
 
     if (!ragClient.isConfigured()) {
       return NextResponse.json(
-        { error: 'Vertex AI RAG is not configured. Set GOOGLE_CLOUD_PROJECT_ID.' },
+        { error: 'Supabase RAG is not configured. Check environment variables.' },
         { status: 503 }
       );
     }
@@ -58,7 +58,7 @@ export async function GET() {
 
     if (!ragClient.isConfigured()) {
       return NextResponse.json(
-        { error: 'Vertex AI RAG is not configured' },
+        { error: 'Supabase RAG is not configured' },
         { status: 503 }
       );
     }
@@ -77,9 +77,11 @@ export async function GET() {
     });
   } catch (error) {
     console.error('List corpora error:', error);
+    const message = error instanceof Error ? error.message : 'Failed to list corpora';
+    const isConnectionError = message.includes('nicht erreichbar');
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to list corpora' },
-      { status: 500 }
+      { error: message },
+      { status: isConnectionError ? 503 : 500 }
     );
   }
 }
@@ -104,7 +106,7 @@ export async function DELETE(request: NextRequest) {
 
     if (!ragClient.isConfigured()) {
       return NextResponse.json(
-        { error: 'Vertex AI RAG is not configured' },
+        { error: 'Supabase RAG is not configured' },
         { status: 503 }
       );
     }

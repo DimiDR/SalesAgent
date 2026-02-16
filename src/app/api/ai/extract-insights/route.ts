@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSAPContextForPrompt } from '@/lib/sap-terminology';
+import { insightResponseSchema, schemaToPrompt, validateItem } from '@/lib/ai-schema';
+import { extractJson } from '@/lib/ai';
 
 const XAI_API_KEY = process.env.XAI_API_KEY;
 const XAI_API_URL = process.env.XAI_API_URL || 'https://api.x.ai/v1';
@@ -14,13 +17,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const systemPrompt = `Du bist ein erfahrener Business Analyst. Analysiere die Meeting-Notizen und extrahiere:
-1. Key-Insights: Wichtige Erkenntnisse aus dem Gespräch
-2. Action Items: Konkrete To-Dos für das Team
+    const fieldDescription = schemaToPrompt(insightResponseSchema, 'Ergebnis', { mode: 'object' });
 
-Gib das Ergebnis als JSON zurück mit:
-- insights: Array von Strings mit den wichtigsten Erkenntnissen
-- actionItems: Array von Strings mit konkreten Aufgaben`;
+    const systemPrompt = `Du bist ein erfahrener SAP-Business-Analyst. Analysiere die Meeting-Notizen im Kontext eines SAP-Beratungsprojekts und extrahiere:
+1. Key-Insights: Wichtige Erkenntnisse aus dem Gespräch (insbesondere zu SAP-Systemlandschaft, Modulen, Anforderungen)
+2. Action Items: Konkrete To-Dos für das SAP-Projektteam
+
+${getSAPContextForPrompt()}
+
+${fieldDescription}`;
 
     if (XAI_API_KEY) {
       const response = await fetch(`${XAI_API_URL}/chat/completions`, {
@@ -30,7 +35,7 @@ Gib das Ergebnis als JSON zurück mit:
           Authorization: `Bearer ${XAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'grok-2-latest',
+          model: 'grok-4-1-fast-non-reasoning',
           messages: [
             { role: 'system', content: systemPrompt },
             {
@@ -49,11 +54,10 @@ Gib das Ergebnis als JSON zurück mit:
       const data = await response.json();
       const resultText = data.choices[0]?.message?.content;
 
-      const jsonMatch = resultText.match(/```json\n?([\s\S]*?)\n?```/) ||
-                        resultText.match(/\{[\s\S]*\}/);
+      const parsed = extractJson<Record<string, unknown>>(resultText);
 
-      if (jsonMatch) {
-        const result = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+      if (parsed) {
+        const result = validateItem(parsed, insightResponseSchema);
         return NextResponse.json(result);
       }
     }
@@ -61,14 +65,16 @@ Gib das Ergebnis als JSON zurück mit:
     // Fallback mock response
     return NextResponse.json({
       insights: [
-        'Kunde bevorzugt Azure als Cloud-Plattform',
-        'Budget wurde bestätigt',
-        'Sicherheit hat höchste Priorität',
+        'Kunde nutzt aktuell SAP ECC 6.0 EHP8 mit den Modulen FI, CO, MM und SD',
+        'Migration auf S/4HANA Cloud (RISE with SAP) ist bevorzugt',
+        'Ca. 200 Z-Programme/Eigenentwicklungen müssen auf Clean Core geprüft werden',
+        'Fiori-Oberflächen für Einkauf und Vertrieb haben hohe Priorität',
       ],
       actionItems: [
-        'Azure-Architektur ausarbeiten',
-        'Schulungskonzept erstellen',
-        'Compliance-Checkliste vorbereiten',
+        'Custom-Code-Analyse mit SAP Readiness Check durchführen',
+        'Fit-to-Standard Workshop für FI/CO planen',
+        'Datenmigrationsstrategie für Stammdaten und Bewegungsdaten erstellen',
+        'SAP BTP-Architektur für Integrationsszenarien ausarbeiten',
       ],
     });
   } catch (error) {

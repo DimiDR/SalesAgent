@@ -25,12 +25,12 @@ Die App soll skalierbar, sicher und einfach zu deployen sein. Ziel: Ein MVP (Min
 - **Hosting und Deployment:** Firebase Hosting (für die App), Firebase Functions (für serverless Backend-Logik, z. B. KI-Aufrufe).
 - **Datenbank und Speicher:** Firebase Firestore (für strukturierte Daten wie Workflows, User-Profile), Firebase Storage (für Dokumenten-Uploads: PDFs, Excels, Words).
 - **KI-Kern:** xAI Grok 4.1 API (für Textanalyse, Generierung von Fragen/Vorschlägen, RAG-Integration).
-- **RAG-System:** Standard-Implementierung mit Embeddings (z. B. via Grok API oder open-source wie Sentence-Transformers), gespeichert in Firestore (Vektoren als Arrays) oder einer einfachen Vector-DB-Extension in Firebase.
-- **Dokumenten-Handling:** Bibliotheken wie pdf-lib (für PDF-Parsing), xlsx (für Excel), docx (für Word) – integriert in Next.js API-Routes oder Firebase Functions.
+- **RAG-System:** ChromaDB als lokale Vektordatenbank mit Adesso AI Hub (OpenAI-kompatibel) für Embeddings (text-embedding-3-small). Dokumente werden lokal gechunkt, embedded und in ChromaDB Collections gespeichert.
+- **Dokumenten-Handling:** pdf-parse (für PDF-Parsing), xlsx (für Excel), docx (für Word) – integriert in Next.js API-Routes.
 - **Authentifizierung:** Firebase Authentication (Email/Password, Google OAuth).
-- **Weitere Libs:** React für UI-Komponenten, Tailwind CSS für Styling, LangChain.js (für RAG-Chain mit Grok).
+- **Weitere Libs:** React für UI-Komponenten, Tailwind CSS 4 für Styling, Zustand für State-Management, Lucide React für Icons.
 
-**Einschränkung:** Alles soweit möglich in Firebase halten – keine externen Services wie SharePoint. Für RAG: Embeddings lokal generieren oder via Grok API.
+**Einschränkung:** Alles soweit möglich in Firebase halten – keine externen Services wie SharePoint. RAG läuft über lokale ChromaDB-Instanz mit Adesso AI Hub Embeddings.
 
 ### 1.3 Annahmen und Abhängigkeiten
 - Zugang zur xAI Grok 4.1 API (API-Key erforderlich).
@@ -77,11 +77,19 @@ Die App soll skalierbar, sicher und einfach zu deployen sein. Ziel: Ein MVP (Min
 - **Schritt 5 (Versenden):** Export des finalen Angebots als Word/PDF.
 
 #### 2.2.5 RAG-Integration
-- Standard-RAG: 
-  - Retrieval: Suche nach relevanten Chunks in Firestore (Cosine-Similarity auf Embeddings).
-  - Augmentation: Füge retrieved Inhalte in Grok-Prompts ein.
-  - Generation: Grok 4.1 generiert Antworten.
+- ChromaDB-basiertes RAG:
+  - Ingestion: Dokumente werden gechunkt (1024 Zeichen, 200 Überlappung), über Adesso AI Hub embedded und in ChromaDB Collections gespeichert.
+  - Retrieval: Semantische Suche in ChromaDB (Cosine Distance auf Embeddings).
+  - Augmentation: Retrieved Chunks werden als Kontext in Grok-Prompts eingefügt.
+  - Generation: Grok 4.1 generiert Antworten basierend auf dem Kontext.
+- Admin-Interface (`/admin`) für Corpus-Verwaltung, Dokumenten-Management und Suchtest.
 - Beispiel-Prompt: "Basierend auf RFP [Auszug] und Unternehmenswissen [retrieved Chunks], generiere Fragen aus Sales-Perspektive."
+
+#### 2.2.8 Spracheingabe und Kalkulation
+- Voice-gesteuerte Ressourcenerfassung über Web Speech API (de-DE).
+- Automatische SAP-Terminologie-Korrektur (z. B. "Ess for Hanna" → "S/4HANA").
+- Kalkulation mit rollenbasierten Tagessätzen (SAP-Rollen vordefiniert).
+- KI-generierte Kalkulationsvorschläge basierend auf RFP-Analyse.
 
 #### 2.2.6 Kollaboration und Bearbeitung
 - Echtzeit-Updates via Firestore (z. B. mit React Hooks).
@@ -124,7 +132,7 @@ Die App soll skalierbar, sicher und einfach zu deployen sein. Ziel: Ein MVP (Min
 - **Client-Side:** Next.js Pages für UI, React-State für lokale Daten.
 - **Server-Side:** Next.js API-Routes oder Firebase Functions für sensible Logik (z. B. Grok-Aufrufe, Dokument-Processing).
 - **Datenfluss:** User → UI → API-Route → Firebase/Grok → Rückgabe an UI.
-- **RAG-Pipeline:** Upload → Chunking/Embedding (in Function) → Speicher in Firestore → Query → Retrieve → Grok-Generate.
+- **RAG-Pipeline:** Upload → Text-Extraktion → Chunking → Embedding (Adesso AI Hub) → Speicher in ChromaDB → Query → Retrieve → Grok-Generate.
 
 ## 5. Implementierungsplan
 - **Phase 1 (Woche 1-2):** Setup (Next.js + Firebase Init, Auth, Basic UI).

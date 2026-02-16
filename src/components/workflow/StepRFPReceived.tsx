@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FileText, Sparkles, CheckCircle, AlertTriangle, Users, Target } from 'lucide-react';
+import { FileText, Sparkles, CheckCircle, AlertTriangle, Users, Target, Database, Loader2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import FileUpload from '@/components/ui/FileUpload';
@@ -15,44 +15,101 @@ interface StepRFPReceivedProps {
 }
 
 export default function StepRFPReceived({ projectId, onComplete }: StepRFPReceivedProps) {
-  const { documents, addDocument, currentAnalysis, setCurrentAnalysis, aiProcessing, setAiProcessing } = useStore();
+  const { documents, addDocument, currentAnalysis, setCurrentAnalysis, saveAnalysis, aiProcessing, setAiProcessing } = useStore();
   const [uploadedRFP, setUploadedRFP] = useState<DocType | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [ragStatus, setRagStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const [ragError, setRagError] = useState<string | null>(null);
 
   const handleUpload = async (files: File[]) => {
-    // In production, this would upload to Firebase Storage
     const file = files[0];
-    const newDoc: DocType = {
-      id: crypto.randomUUID(),
-      projectId,
-      name: file.name,
-      type: 'rfp',
-      mimeType: file.type,
-      url: URL.createObjectURL(file),
-      storagePath: `projects/${projectId}/rfp/${file.name}`,
-      size: file.size,
-      uploadedBy: 'current-user',
-      createdAt: new Date(),
-    };
 
-    addDocument(newDoc);
-    setUploadedRFP(newDoc);
-  };
-
-  const handleAnalyze = async () => {
-    if (!uploadedRFP) return;
-
-    setAiProcessing(true);
-
+    // Save document to DB via store
+    let savedDoc: DocType;
     try {
-      // Call AI API for analysis
-      const response = await fetch('/api/ai/analyze-rfp', {
+      savedDoc = await addDocument({
+        projectId,
+        name: file.name,
+        type: 'rfp',
+        mimeType: file.type,
+        url: '',
+        storagePath: `projects/${projectId}/rfp/${file.name}`,
+        size: file.size,
+        uploadedBy: 'system',
+      });
+    } catch (err) {
+      console.error('Failed to save document to DB:', err);
+      // Fallback: still allow local workflow to continue
+      savedDoc = {
+        id: crypto.randomUUID(),
+        projectId,
+        name: file.name,
+        type: 'rfp',
+        mimeType: file.type,
+        url: '',
+        storagePath: `projects/${projectId}/rfp/${file.name}`,
+        size: file.size,
+        uploadedBy: 'system',
+        createdAt: new Date(),
+      };
+    }
+
+    setUploadedRFP(savedDoc);
+    setUploadedFile(file);
+
+    // Upload to Supabase RAG pipeline
+    setRagStatus('uploading');
+    setRagError(null);
+    try {
+      // 1. Ensure RAG corpus exists for this project
+      const corpusName = `salesagent-project-${projectId}`;
+      await fetch('/api/rag/corpus', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           projectId,
-          documentId: uploadedRFP.id,
-          documentUrl: uploadedRFP.url,
+          description: `RAG-Corpus für Projekt ${projectId}`,
         }),
+      });
+
+      // 2. Upload file to RAG pipeline (creates embeddings)
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('corpusName', corpusName);
+
+      const uploadRes = await fetch('/api/rag/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const uploadData = await uploadRes.json();
+      if (!uploadRes.ok || !uploadData.success) {
+        throw new Error(uploadData.error || 'RAG-Upload fehlgeschlagen');
+      }
+
+      setRagStatus('success');
+    } catch (error) {
+      console.warn('RAG upload failed:', error);
+      setRagStatus('error');
+      setRagError(error instanceof Error ? error.message : 'RAG-Upload fehlgeschlagen');
+    }
+  };
+
+  const handleAnalyze = async () => {
+    if (!uploadedRFP || !uploadedFile) return;
+
+    setAiProcessing(true);
+
+    try {
+      // Send PDF file as FormData so the backend can extract text
+      const formData = new FormData();
+      formData.append('file', uploadedFile);
+      formData.append('projectId', projectId);
+      formData.append('documentId', uploadedRFP.id);
+
+      const response = await fetch('/api/ai/analyze-rfp', {
+        method: 'POST',
+        body: formData,
       });
 
       if (!response.ok) {
@@ -61,6 +118,12 @@ export default function StepRFPReceived({ projectId, onComplete }: StepRFPReceiv
 
       const analysis: RFPAnalysis = await response.json();
       setCurrentAnalysis(analysis);
+      // Persist analysis to DB
+      try {
+        await saveAnalysis(analysis);
+      } catch (err) {
+        console.warn('Failed to save analysis to DB:', err);
+      }
     } catch (error) {
       console.error('RFP analysis error:', error);
       // For demo, create mock analysis
@@ -100,6 +163,11 @@ export default function StepRFPReceived({ projectId, onComplete }: StepRFPReceiv
         createdAt: new Date(),
       };
       setCurrentAnalysis(mockAnalysis);
+      try {
+        await saveAnalysis(mockAnalysis);
+      } catch (err) {
+        console.warn('Failed to save mock analysis to DB:', err);
+      }
     } finally {
       setAiProcessing(false);
     }
@@ -129,16 +197,53 @@ export default function StepRFPReceived({ projectId, onComplete }: StepRFPReceiv
           />
 
           {rfpDocuments.length > 0 && (
-            <div className="mt-4 p-4 bg-green-50 rounded-lg flex items-center gap-3">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              <div>
-                <p className="font-medium text-green-800">
-                  {rfpDocuments[0].name}
-                </p>
-                <p className="text-sm text-green-600">
-                  Erfolgreich hochgeladen
-                </p>
+            <div className="mt-4 space-y-3">
+              <div className="p-4 bg-green-50 rounded-lg flex items-center gap-3">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <div>
+                  <p className="font-medium text-green-800">
+                    {rfpDocuments[0].name}
+                  </p>
+                  <p className="text-sm text-green-600">
+                    Erfolgreich hochgeladen
+                  </p>
+                </div>
               </div>
+
+              {/* RAG Upload Status */}
+              {ragStatus === 'uploading' && (
+                <div className="p-4 bg-blue-50 rounded-lg flex items-center gap-3">
+                  <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                  <div>
+                    <p className="font-medium text-blue-800">RAG-Indexierung läuft...</p>
+                    <p className="text-sm text-blue-600">
+                      Dokument wird für die semantische Suche vorbereitet
+                    </p>
+                  </div>
+                </div>
+              )}
+              {ragStatus === 'success' && (
+                <div className="p-4 bg-green-50 rounded-lg flex items-center gap-3">
+                  <Database className="w-5 h-5 text-green-600" />
+                  <div>
+                    <p className="font-medium text-green-800">RAG-Indexierung abgeschlossen</p>
+                    <p className="text-sm text-green-600">
+                      Dokument ist für die semantische Suche verfügbar
+                    </p>
+                  </div>
+                </div>
+              )}
+              {ragStatus === 'error' && (
+                <div className="p-4 bg-yellow-50 rounded-lg flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-yellow-600" />
+                  <div>
+                    <p className="font-medium text-yellow-800">RAG-Indexierung fehlgeschlagen</p>
+                    <p className="text-sm text-yellow-600">
+                      {ragError || 'Das Dokument konnte nicht indexiert werden. Die KI-Analyse ist weiterhin möglich.'}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </CardContent>

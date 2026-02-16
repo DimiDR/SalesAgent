@@ -22,7 +22,7 @@ const PERSONA_CONFIG = {
 };
 
 export default function StepQuestionsFormulated({ projectId, onComplete }: StepQuestionsFormulatedProps) {
-  const { questions, setQuestions, aiProcessing, setAiProcessing, currentAnalysis } = useStore();
+  const { questions, setQuestions, addQuestions, updateQuestion: storeUpdateQuestion, aiProcessing, setAiProcessing, currentAnalysis } = useStore();
   const [showAnswerUpload, setShowAnswerUpload] = useState(false);
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
 
@@ -46,7 +46,22 @@ export default function StepQuestionsFormulated({ projectId, onComplete }: StepQ
       }
 
       const generatedQuestions: Question[] = await response.json();
-      setQuestions([...questions, ...generatedQuestions]);
+      // Persist to DB then update local state
+      try {
+        await addQuestions(generatedQuestions.map(q => ({
+          projectId: q.projectId,
+          persona: q.persona,
+          question: q.question,
+          reasoning: q.reasoning,
+          priority: q.priority,
+          status: q.status,
+          answer: q.answer,
+          answeredAt: q.answeredAt,
+        })));
+      } catch (err) {
+        console.warn('Failed to save questions to DB:', err);
+        setQuestions([...questions, ...generatedQuestions]);
+      }
     } catch (error) {
       console.error('Question generation error:', error);
       // Mock questions for demo
@@ -156,7 +171,20 @@ export default function StepQuestionsFormulated({ projectId, onComplete }: StepQ
           createdAt: new Date(),
         },
       ];
-      setQuestions([...questions, ...mockQuestions]);
+      // Persist mock questions to DB
+      try {
+        await addQuestions(mockQuestions.map(q => ({
+          projectId: q.projectId,
+          persona: q.persona,
+          question: q.question,
+          reasoning: q.reasoning,
+          priority: q.priority,
+          status: q.status,
+        })));
+      } catch (err) {
+        console.warn('Failed to save mock questions to DB:', err);
+        setQuestions([...questions, ...mockQuestions]);
+      }
     } finally {
       setAiProcessing(false);
     }
@@ -192,18 +220,19 @@ export default function StepQuestionsFormulated({ projectId, onComplete }: StepQ
     console.log('Uploaded answer file:', files[0]?.name);
     setShowAnswerUpload(false);
 
-    // Mock: Mark some questions as answered
-    const updatedQuestions = projectQuestions.map((q, idx) => ({
-      ...q,
-      answer: idx < 5 ? 'Beispielantwort vom Kunden' : undefined,
-      status: idx < 5 ? 'answered' as const : 'pending' as const,
-      answeredAt: idx < 5 ? new Date() : undefined,
-    }));
-
-    setQuestions([
-      ...questions.filter((q) => q.projectId !== projectId),
-      ...updatedQuestions,
-    ]);
+    // Mock: Mark some questions as answered and persist to DB
+    for (let idx = 0; idx < Math.min(5, projectQuestions.length); idx++) {
+      const q = projectQuestions[idx];
+      try {
+        await storeUpdateQuestion(q.id, {
+          answer: 'Beispielantwort vom Kunden',
+          status: 'answered',
+          answeredAt: new Date(),
+        });
+      } catch (err) {
+        console.warn('Failed to update question:', err);
+      }
+    }
   };
 
   const filteredQuestions = selectedPersona

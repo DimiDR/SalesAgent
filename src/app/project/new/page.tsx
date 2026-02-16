@@ -10,11 +10,11 @@ import { Input, Textarea } from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import { useStore } from '@/store/useStore';
-import type { Project, Customer } from '@/types';
+import type { Customer } from '@/types';
 
 export default function NewProjectPage() {
   const router = useRouter();
-  const { addProject, user, customers, addCustomer } = useStore();
+  const { addProject, customers, loadCustomers, addCustomer } = useStore();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -31,6 +31,10 @@ export default function NewProjectPage() {
     contactPerson: '',
     contactEmail: '',
   });
+
+  useEffect(() => {
+    loadCustomers();
+  }, [loadCustomers]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -59,23 +63,17 @@ export default function NewProjectPage() {
     }
   };
 
-  const handleCreateNewCustomer = () => {
+  const handleCreateNewCustomer = async () => {
     if (!newCustomerData.companyName || !newCustomerData.contactPerson || !newCustomerData.contactEmail) {
       return;
     }
 
-    const newCustomer: Customer = {
-      id: `cust-${Date.now()}`,
+    const newCustomer = await addCustomer({
       companyName: newCustomerData.companyName,
       contactPerson: newCustomerData.contactPerson,
       contactEmail: newCustomerData.contactEmail,
-      proposals: [],
-      appointments: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    });
 
-    addCustomer(newCustomer);
     setFormData(prev => ({
       ...prev,
       customerId: newCustomer.id,
@@ -105,8 +103,7 @@ export default function NewProjectPage() {
     setIsLoading(true);
 
     try {
-      const newProject: Project = {
-        id: crypto.randomUUID(),
+      const newProject = await addProject({
         name: formData.name.trim(),
         customer: formData.customer.trim(),
         customerId: formData.customerId,
@@ -115,14 +112,9 @@ export default function NewProjectPage() {
         proposalValue: formData.proposalValue ? parseFloat(formData.proposalValue) : undefined,
         status: 'active',
         currentStep: 'rfp_received',
-        createdBy: user?.id || 'unknown',
-        teamMembers: [user?.id || 'unknown'],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      // In production, this would save to Firebase
-      addProject(newProject);
+        createdBy: 'system',
+        teamMembers: [],
+      });
 
       router.push(`/project/${newProject.id}`);
     } catch (error) {

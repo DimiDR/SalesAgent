@@ -15,7 +15,7 @@ interface StepCustomerMeetingProps {
 }
 
 export default function StepCustomerMeeting({ projectId, onComplete }: StepCustomerMeetingProps) {
-  const { currentMeeting, setCurrentMeeting, aiProcessing, setAiProcessing, currentAnalysis, questions } = useStore();
+  const { currentMeeting, setCurrentMeeting, saveMeeting, aiProcessing, setAiProcessing, currentAnalysis, questions } = useStore();
   const [notes, setNotes] = useState(currentMeeting?.notes || '');
   const [extractedInsights, setExtractedInsights] = useState<string[]>([]);
 
@@ -41,6 +41,7 @@ export default function StepCustomerMeeting({ projectId, onComplete }: StepCusto
 
       const meeting: Meeting = await response.json();
       setCurrentMeeting(meeting);
+      try { await saveMeeting(meeting); } catch (e) { console.warn('Failed to save meeting:', e); }
     } catch (error) {
       console.error('Agenda generation error:', error);
       // Mock agenda
@@ -88,6 +89,7 @@ export default function StepCustomerMeeting({ projectId, onComplete }: StepCusto
         updatedAt: new Date(),
       };
       setCurrentMeeting(mockMeeting);
+      try { await saveMeeting(mockMeeting); } catch (e) { console.warn('Failed to save mock meeting:', e); }
     } finally {
       setAiProcessing(false);
     }

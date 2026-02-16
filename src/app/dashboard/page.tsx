@@ -11,65 +11,11 @@ import { useStore } from '@/store/useStore';
 import { WORKFLOW_STEPS } from '@/types';
 
 export default function DashboardPage() {
-  const { projects, user, setUser, setProjects } = useStore();
+  const { projects, loadProjects } = useStore();
 
   useEffect(() => {
-    // Mock user if not logged in
-    if (!user) {
-      setUser({
-        id: 'demo-user',
-        email: 'demo@example.com',
-        displayName: 'Demo Benutzer',
-        role: 'admin',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-    }
-
-    // Mock some projects for demo
-    if (projects.length === 0) {
-      setProjects([
-        {
-          id: 'project-1',
-          name: 'Cloud Migration Kunde A',
-          customer: 'Firma A GmbH',
-          description: 'Vollständige Cloud-Migration auf Azure',
-          deadline: new Date('2026-03-15'),
-          status: 'active',
-          currentStep: 'proposal_created',
-          createdBy: 'demo-user',
-          teamMembers: ['demo-user'],
-          createdAt: new Date('2026-01-15'),
-          updatedAt: new Date(),
-        },
-        {
-          id: 'project-2',
-          name: 'DevOps Transformation',
-          customer: 'Firma B AG',
-          description: 'Einführung von CI/CD und Kubernetes',
-          deadline: new Date('2026-04-01'),
-          status: 'active',
-          currentStep: 'questions_formulated',
-          createdBy: 'demo-user',
-          teamMembers: ['demo-user'],
-          createdAt: new Date('2026-01-20'),
-          updatedAt: new Date(),
-        },
-        {
-          id: 'project-3',
-          name: 'Security Audit',
-          customer: 'Firma C KG',
-          description: 'Umfassendes Sicherheitsaudit und Penetration Testing',
-          status: 'completed',
-          currentStep: 'proposal_sent',
-          createdBy: 'demo-user',
-          teamMembers: ['demo-user'],
-          createdAt: new Date('2026-01-05'),
-          updatedAt: new Date(),
-        },
-      ]);
-    }
-  }, [user, projects.length, setUser, setProjects]);
+    loadProjects();
+  }, [loadProjects]);
 
   const activeProjects = projects.filter((p) => p.status === 'active');
   const completedProjects = projects.filter((p) => p.status === 'completed');
@@ -91,7 +37,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              Willkommen zurück, {user?.displayName}
+              Willkommen zurück
             </h1>
             <p className="text-gray-600 mt-1">
               Hier ist eine Übersicht Ihrer aktiven Angebote
@@ -161,7 +107,11 @@ export default function DashboardPage() {
                   <TrendingUp className="w-6 h-6 text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">85%</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {projects.length > 0
+                      ? Math.round((completedProjects.length / projects.length) * 100)
+                      : 0}%
+                  </p>
                   <p className="text-sm text-gray-500">Erfolgsrate</p>
                 </div>
               </div>

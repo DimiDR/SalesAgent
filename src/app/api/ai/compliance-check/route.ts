@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSAPContextForPrompt } from '@/lib/sap-terminology';
+import { complianceCheckSchema, schemaToPrompt, validateArray } from '@/lib/ai-schema';
+import { extractJson } from '@/lib/ai';
 
 const XAI_API_KEY = process.env.XAI_API_KEY;
 const XAI_API_URL = process.env.XAI_API_URL || 'https://api.x.ai/v1';
@@ -14,16 +17,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const systemPrompt = `Du bist ein Qualitätsprüfer für Beratungsangebote. Führe eine Vollständigkeitsprüfung durch und prüfe:
-1. Sind alle RFP-Anforderungen adressiert?
-2. Ist das Angebot vollständig?
-3. Gibt es Inkonsistenzen?
-4. Fehlen wichtige Informationen?
+    const fieldDescription = schemaToPrompt(complianceCheckSchema, 'Prüfpunkt');
 
-Gib das Ergebnis als JSON-Array zurück:
-- item: Was geprüft wurde
-- status: 'pass' | 'warning' | 'fail'
-- message: Erklärung`;
+    const systemPrompt = `Du bist ein Qualitätsprüfer für SAP-Beratungsangebote. Führe eine Vollständigkeitsprüfung durch und prüfe:
+1. Sind alle RFP-Anforderungen adressiert (insbesondere SAP-Module und -Technologien)?
+2. Ist das Angebot vollständig (Methodik, Team, Kalkulation, SAP-Systemlandschaft)?
+3. Gibt es Inkonsistenzen (z.B. falsche SAP-Produktnamen, widersprüchliche Modulangaben)?
+4. Fehlen wichtige SAP-spezifische Informationen (Migrationsstrategie, Lizenzmodell, Clean-Core-Ansatz)?
+5. Sind SAP-Produktnamen korrekt (S/4HANA, SAP Fiori, SAPUI5, SAP BTP, etc.)?
+
+${getSAPContextForPrompt()}
+
+Gib das Ergebnis als JSON-Array zurück.
+${fieldDescription}`;
 
     if (XAI_API_KEY && proposal && analysis) {
       const response = await fetch(`${XAI_API_URL}/chat/completions`, {
@@ -33,7 +39,7 @@ Gib das Ergebnis als JSON-Array zurück:
           Authorization: `Bearer ${XAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'grok-2-latest',
+          model: 'grok-4-1-fast-non-reasoning',
           messages: [
             { role: 'system', content: systemPrompt },
             {
@@ -52,11 +58,10 @@ Gib das Ergebnis als JSON-Array zurück:
       const data = await response.json();
       const checksText = data.choices[0]?.message?.content;
 
-      const jsonMatch = checksText.match(/```json\n?([\s\S]*?)\n?```/) ||
-                        checksText.match(/\[[\s\S]*\]/);
+      const parsed = extractJson<unknown[]>(checksText);
 
-      if (jsonMatch) {
-        const checks = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+      if (parsed && Array.isArray(parsed)) {
+        const checks = validateArray(parsed, complianceCheckSchema);
         return NextResponse.json({ checks });
       }
     }

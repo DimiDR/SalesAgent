@@ -29,7 +29,7 @@ Die App führt den Angebotsprozess linear durch, dargestellt als **Stepper** in 
 - „Kritische Lücken: Keine Angabe zu Skalierbarkeitsanforderungen“
 - „Empfohlene Teammitglieder: Senior Cloud Architect, Sales Lead Industrie X“
 
-#### Schritt 2: Fragen Gestellt
+#### Schritt 2: Kundenfragen
 **Ziel:** Klärende Fragen an den Kunden formulieren und versenden.
 
 **Ablauf:**
@@ -86,11 +86,18 @@ Die App führt den Angebotsprozess linear durch, dargestellt als **Stepper** in 
 - Generiert **vollständige Textentwürfe** für jeden Abschnitt unter Nutzung von:
   - RFP-Inhalt
   - Kunden-Antworten aus Schritt 2+3
-  - RAG-Unternehmenswissen (Referenzen, Lösungsbeschreibungen, USPs)
+  - RAG-Unternehmenswissen aus ChromaDB (Referenzen, Lösungsbeschreibungen, USPs)
 - Passt Tonfall, Länge und Struktur an das Template an
 - Erzeugt Tabellen (z. B. Preisübersicht, Meilensteinplan)
+- **Spracheingabe**: Voice-gesteuerte Ressourcenerfassung (Web Speech API, de-DE)
+  - Automatische SAP-Terminologie-Korrektur (z. B. "Ess for Hanna" → "S/4HANA", "Fiori" wird korrekt erkannt)
+  - Parst Spracheingabe in strukturierte Ressourcen-Daten (Rolle, Anzahl, Dauer, Tagessatz)
+- **Kalkulation**: Automatische Kostenkalkulation
+  - Vordefinierte SAP-Rollenprofile mit Tagessätzen
+  - KI-generierte Kalkulationsvorschläge basierend auf RFP-Analyse
+  - Übersichtliche Kostenaufstellung
 
-**KI-Output:** Vorgefülltes Word-Dokument (ca. 70-85 % fertig)
+**KI-Output:** Vorgefülltes Word-Dokument (ca. 70-85 % fertig), Kalkulation mit Ressourcenplanung
 
 #### Schritt 5: Angebot Angeschickt
 **Ziel:** Finale Qualitätsprüfung und Versand.

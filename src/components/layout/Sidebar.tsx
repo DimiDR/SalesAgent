@@ -11,6 +11,7 @@ import {
   Settings,
   HelpCircle,
   Award,
+  Shield,
 } from 'lucide-react';
 
 const sidebarLinks = [
@@ -23,6 +24,7 @@ const sidebarLinks = [
 ];
 
 const bottomLinks = [
+  { href: '/admin', label: 'Administration', icon: Shield },
   { href: '/settings', label: 'Einstellungen', icon: Settings },
   { href: '/help', label: 'Hilfe', icon: HelpCircle },
 ];

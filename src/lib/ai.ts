@@ -2,6 +2,8 @@
  * AI utility functions for interacting with the Grok API
  */
 
+import { getSAPContextForPrompt } from './sap-terminology';
+
 const XAI_API_URL = process.env.XAI_API_URL || 'https://api.x.ai/v1';
 
 interface ChatMessage {
@@ -24,7 +26,7 @@ export async function chatCompletion(
   options: ChatCompletionOptions = {}
 ) {
   const {
-    model = 'grok-2-latest',
+    model = 'grok-4-1-fast-non-reasoning',
     temperature = 0.5,
     maxTokens = 4096,
   } = options;
@@ -66,21 +68,21 @@ export function extractJson<T>(text: string): T | null {
     }
   }
 
-  // Try to find raw JSON object
-  const objectMatch = text.match(/\{[\s\S]*\}/);
-  if (objectMatch) {
+  // Try to find raw JSON array (before object, so [{}] isn't parsed as {})
+  const arrayMatch = text.match(/\[[\s\S]*\]/);
+  if (arrayMatch) {
     try {
-      return JSON.parse(objectMatch[0]);
+      return JSON.parse(arrayMatch[0]);
     } catch {
       // Continue to other methods
     }
   }
 
-  // Try to find raw JSON array
-  const arrayMatch = text.match(/\[[\s\S]*\]/);
-  if (arrayMatch) {
+  // Try to find raw JSON object
+  const objectMatch = text.match(/\{[\s\S]*\}/);
+  if (objectMatch) {
     try {
-      return JSON.parse(arrayMatch[0]);
+      return JSON.parse(objectMatch[0]);
     } catch {
       // Parsing failed
     }
@@ -90,59 +92,76 @@ export function extractJson<T>(text: string): T | null {
 }
 
 /**
+ * SAP domain context included in all relevant prompts
+ */
+const sapContext = getSAPContextForPrompt();
+
+/**
  * System prompts for different AI tasks
  */
 export const systemPrompts = {
-  rfpAnalysis: `Du bist ein erfahrener Vertriebsexperte und RFP-Analyst. Analysiere RFP-Dokumente und erstelle strukturierte Analysen mit:
+  rfpAnalysis: `Du bist ein erfahrener Vertriebsexperte und RFP-Analyst für SAP-Beratungsprojekte.
+
+${sapContext}
+
+Analysiere RFP-Dokumente und erstelle strukturierte Analysen mit:
 - Zusammenfassung des Projekts
-- Identifizierte Anforderungen
+- Identifizierte Anforderungen (insbesondere SAP-Module, Produkte und Technologien)
 - Wichtige Fristen
 - Budget-Hinweise
 - Lücken und fehlende Informationen
-- Übereinstimmung mit typischen Beratungsleistungen
-- Empfohlene Ressourcen`,
+- Übereinstimmung mit typischen SAP-Beratungsleistungen
+- Empfohlene SAP-Ressourcen und -Beraterprofile (z.B. ABAP-Entwickler, S/4HANA-Berater, Fiori-Entwickler)
+- Identifizierte SAP-Systemlandschaft (ECC, S/4HANA, BTP, etc.)`,
 
-  questionGeneration: `Du bist ein erfahrener Vertriebsberater. Generiere Fragen aus verschiedenen Perspektiven:
-1. Sales: Budget, Timeline, Entscheidungsprozess
-2. Technisch: Spezifikationen, Integration, Security
-3. Projektmanagement: Ressourcen, Risiken
-4. Kunde: Pain-Points, Erwartungen
+  questionGeneration: `Du bist ein erfahrener SAP-Vertriebsberater. Generiere Fragen aus verschiedenen Perspektiven:
+1. Sales: Budget, Timeline, Entscheidungsprozess, Lizenzmodell (RISE/GROW with SAP)
+2. Technisch: SAP-Systemlandschaft, Module, Integration, Customizing, ABAP-Entwicklung, Cloud vs. On-Premise
+3. Projektmanagement: Ressourcen, Risiken, SAP Activate-Methodik, Go-Live-Planung
+4. Kunde: Pain-Points mit bestehendem SAP-System, Erwartungen an S/4HANA-Transformation
+
+${sapContext}
 
 Für jede Frage: Persona, Frage, Begründung, Priorität (high/medium/low)`,
 
-  agendaGeneration: `Du bist ein erfahrener Projektmanager. Erstelle professionelle Meeting-Agenden mit:
+  agendaGeneration: `Du bist ein erfahrener SAP-Projektmanager. Erstelle professionelle Meeting-Agenden mit:
 - Strukturierte Punkte mit Zeitangaben
 - Klare Ziele für jeden Punkt
-- Logischer Ablauf
-- Raum für Fragen und Diskussion`,
+- Logischer Ablauf (z.B. Fit-to-Standard Workshop, Blueprint-Review, Sprint-Review)
+- Raum für Fragen und Diskussion
+- Berücksichtigung von SAP Activate-Phasen (Discover, Prepare, Explore, Realize, Deploy, Run)`,
 
-  proposalWriting: `Du bist ein erfahrener Angebotsschreiber für IT-Beratungsprojekte. Schreibe:
-- Professionelle und überzeugende Texte
-- Kundenspezifische Inhalte
+  proposalWriting: `Du bist ein erfahrener Angebotsschreiber für SAP-Beratungsprojekte. Schreibe:
+- Professionelle und überzeugende Texte für SAP-Transformationsprojekte
+- Kundenspezifische Inhalte mit Bezug auf die SAP-Systemlandschaft des Kunden
 - Klar strukturierte Kapitel
-- Fokus auf Kundennutzen und USPs`,
+- Fokus auf Kundennutzen, SAP-Best-Practices und USPs
+- Korrekte Verwendung von SAP-Terminologie und Produktnamen
 
-  insightExtraction: `Du bist ein erfahrener Business Analyst. Extrahiere aus Meeting-Notizen:
-- Key-Insights: Wichtige Erkenntnisse
-- Neue Anforderungen
-- Geänderte Rahmenbedingungen
-- Action Items: Konkrete To-Dos`,
+${sapContext}`,
 
-  complianceCheck: `Du bist ein Qualitätsprüfer für Beratungsangebote. Prüfe:
-- Vollständigkeit (alle RFP-Anforderungen adressiert?)
-- Konsistenz (keine Widersprüche?)
-- Compliance (rechtliche Anforderungen erfüllt?)
-- Qualität (professionelle Darstellung?)`,
+  insightExtraction: `Du bist ein erfahrener SAP-Business-Analyst. Extrahiere aus Meeting-Notizen:
+- Key-Insights: Wichtige Erkenntnisse zu SAP-Anforderungen und Systemlandschaft
+- Neue Anforderungen (Module, Schnittstellen, Customizing)
+- Geänderte Rahmenbedingungen (Timeline, Budget, Scope, Lizenzmodell)
+- Action Items: Konkrete To-Dos mit SAP-Bezug
+- Genannte SAP-Produkte und -Technologien`,
+
+  complianceCheck: `Du bist ein Qualitätsprüfer für SAP-Beratungsangebote. Prüfe:
+- Vollständigkeit (alle RFP-Anforderungen adressiert? Alle genannten SAP-Module abgedeckt?)
+- Konsistenz (keine Widersprüche? Korrekte SAP-Terminologie?)
+- Compliance (rechtliche Anforderungen erfüllt? SAP-Lizenzierung korrekt dargestellt?)
+- Qualität (professionelle Darstellung? SAP-Best-Practices berücksichtigt?)
+- SAP-Produktnamen korrekt geschrieben (S/4HANA, nicht S4 Hana; SAP Fiori, nicht SAP Fiore, etc.)`,
 };
 
 /**
- * Generate embeddings using Vertex AI (via RAG client)
- * Falls back to mock embeddings if Vertex AI is not configured
+ * Generate embeddings using Adesso AI Hub (via ChromaDB RAG client)
+ * Falls back to mock embeddings if not configured
  */
 export async function generateEmbeddings(text: string, _apiKey?: string): Promise<number[]> {
   try {
-    // Dynamic import to avoid issues if google-auth-library is not installed
-    const { getRAGClient } = await import('./vertex-rag');
+    const { getRAGClient } = await import('./supabase-rag');
     const ragClient = getRAGClient();
 
     if (ragClient.isConfigured()) {
@@ -150,7 +169,7 @@ export async function generateEmbeddings(text: string, _apiKey?: string): Promis
       return response.embedding;
     }
   } catch (error) {
-    console.warn('Vertex AI embeddings unavailable, using mock:', error);
+    console.warn('Embedding API unavailable, using mock:', error);
   }
 
   // Fallback: return mock embedding
@@ -169,7 +188,7 @@ export async function ragAugmentedCompletion(
   options: ChatCompletionOptions = {}
 ): Promise<string> {
   try {
-    const { getRAGClient } = await import('./vertex-rag');
+    const { getRAGClient } = await import('./supabase-rag');
     const ragClient = getRAGClient();
 
     let context = '';
@@ -235,12 +254,16 @@ export function cosineSimilarity(a: number[], b: number[]): number {
  * Chunk text for embedding
  */
 export function chunkText(text: string, chunkSize = 1000, overlap = 200): string[] {
+  if (!text || chunkSize <= 0) return [];
+  if (overlap >= chunkSize) overlap = 0;
+
   const chunks: string[] = [];
   let start = 0;
 
   while (start < text.length) {
     const end = Math.min(start + chunkSize, text.length);
     chunks.push(text.slice(start, end));
+    if (end >= text.length) break;
     start = end - overlap;
   }
 

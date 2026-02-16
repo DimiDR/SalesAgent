@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRAGClient } from '@/lib/vertex-rag';
+import { getRAGClient } from '@/lib/supabase-rag';
 
 /**
  * POST /api/rag/documents
- * Ingest a document into a RAG corpus
+ * Ingest a document into a RAG corpus (direct text content)
  */
 export async function POST(request: NextRequest) {
   try {
-    const { corpusName, gcsUri, displayName, metadata } = await request.json();
+    const { corpusName, content, displayName, metadata } = await request.json();
 
     if (!corpusName) {
       return NextResponse.json(
@@ -16,9 +16,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!gcsUri) {
+    if (!content) {
       return NextResponse.json(
-        { error: 'gcsUri is required (gs://bucket/path/to/file)' },
+        { error: 'content is required (text content of the document)' },
         { status: 400 }
       );
     }
@@ -27,15 +27,15 @@ export async function POST(request: NextRequest) {
 
     if (!ragClient.isConfigured()) {
       return NextResponse.json(
-        { error: 'Vertex AI RAG is not configured' },
+        { error: 'Supabase RAG is not configured' },
         { status: 503 }
       );
     }
 
     const document = await ragClient.ingestDocument({
       corpusName: ragClient.buildCorpusName(corpusName),
-      gcsUri,
-      displayName: displayName || gcsUri.split('/').pop() || 'document',
+      content,
+      displayName: displayName || 'document',
       metadata,
     });
 
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
         displayName: document.displayName,
         status: document.status,
       },
-      message: 'Document ingestion started. It may take a few minutes to process.',
+      message: 'Document ingested successfully.',
     });
   } catch (error) {
     console.error('Ingest document error:', error);
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
 
     if (!ragClient.isConfigured()) {
       return NextResponse.json(
-        { error: 'Vertex AI RAG is not configured' },
+        { error: 'Supabase RAG is not configured' },
         { status: 503 }
       );
     }
@@ -125,7 +125,7 @@ export async function DELETE(request: NextRequest) {
 
     if (!ragClient.isConfigured()) {
       return NextResponse.json(
-        { error: 'Vertex AI RAG is not configured' },
+        { error: 'Supabase RAG is not configured' },
         { status: 503 }
       );
     }

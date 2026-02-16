@@ -8,7 +8,7 @@ Ich beschreibe das Schritt für Schritt: Zuerst den **gesamten Workflow**, dann 
 Der Workflow ist als **simpler, linearer Prozess** in der UI dargestellt – visualisiert als Stepper oder Timeline (z. B. mit Fortschrittsbalken und Buttons in Next.js). Er umfasst genau die 5 Schritte, die du beschrieben hast:
 
 1. **RFP Erhalten**: Upload und erste Analyse des RFP-Dokuments.
-2. **Fragen Gestellt**: Generierung und Klärung offener Punkte mit dem Kunden.
+2. **Kundenfragen**: Generierung und Klärung offener Punkte mit dem Kunden.
 3. **Kundentermin zur Klärung Gehalten**: Vorbereitung und Nachbereitung eines Meetings.
 4. **Angebot Erstellt**: Strukturierung und Schreiben des Angebots.
 5. **Angebot Angeschickt**: Finalisierung und Export.
@@ -28,7 +28,7 @@ Die KI (Grok 4.1) ist omnipräsent und unterstützt **kontinuierlich** durch Ana
   - **Im Verkaufsprozess**: Hilft bei der schnellen Einschätzung der Machbarkeit – z. B. "Hohe Übereinstimmung mit unseren Stärken (80 %) basierend auf RAG-Abgleich". Das spart Zeit und priorisiert lukrative RFPs.
   - **UI-Interaktion**: Button "Analysieren" → KI-Output als Liste/Tabelle in der UI.
 
-- **Schritt 2: Fragen Gestellt**
+- **Schritt 2: Kundenfragen**
   - **KI-Unterstützung**: Basierend auf RFP-Analyse generiert die KI Fragen-Vorschläge aus verschiedenen Personas (z. B. Sales: "Welches Budget haben Sie?"; Experte: "Welche technischen Specs zur Integration?"; Kunde: "Was sind Ihre Pain-Points?"). Nutzt RAG, um Fragen an vergangene ähnliche Angebote anzupassen. Export als Excel (mit openpyxl in Backend) – Spalten: Persona, Frage, Begründung.
   - **Im Verkaufsprozess**: Fördert qualifizierte Leads, indem offene Punkte früh geklärt werden. Nach Kunden-Antworten (Excel-Upload): KI parst die Antworten und integriert sie in den Kontext für spätere Schritte.
   - **UI-Interaktion**: Button "Fragen Generieren" → Anzeige in Tabelle; Download/Upload-Buttons.
@@ -40,8 +40,10 @@ Die KI (Grok 4.1) ist omnipräsent und unterstützt **kontinuierlich** durch Ana
 
 - **Schritt 4: Angebot Erstellt**
   - **KI-Unterstützung**: Strukturiert Kapitel (z. B. "Einführung, Lösung, Preis, Risiken") basierend auf RFP, Kunden-Antworten und deinem Word-Template (hochgeladen in Firebase). Generiert Texte: "Kapitel 2: Unsere Lösung – [KI-generierter Absatz, abgeleitet aus RAG-Unternehmenswissen]". Passt an Unternehmensstruktur an (z. B. "Folge unserer Beratungspyramide: Problem → Lösung → Vorteil").
+  - **Spracheingabe**: Voice-gesteuerte Ressourcenerfassung über Web Speech API. SAP-Terminologie wird automatisch korrigiert (z. B. "Fiori Berater" wird korrekt erkannt). Ressourcen werden per Sprache als strukturierte Daten (Rolle, Anzahl, Dauer, Tagessatz) erfasst.
+  - **Kalkulation**: Automatische Kostenkalkulation mit vordefinierten SAP-Rollenprofilen und Tagessätzen. KI-generierte Kalkulationsvorschläge basierend auf der RFP-Analyse.
   - **Im Verkaufsprozess**: Automatisiert das Schreiben (bis zu 85 % Entwurf), was den Zyklus verkürzt und Konsistenz gewährleistet. Menschliche Bearbeitung: Team editiert den Entwurf in der UI.
-  - **UI-Interaktion**: Button "Struktur Generieren" → Outline-Anzeige; "Texte Schreiben" → Vorschau; Integration mit docx-Lib für Template-Füllung.
+  - **UI-Interaktion**: Button "Struktur Generieren" → Outline-Anzeige; "Texte Schreiben" → Vorschau; Spracheingabe für Ressourcen; Integration mit docx-Lib für Template-Füllung.
 
 - **Schritt 5: Angebot Angeschickt**
   - **KI-Unterstützung**: Überprüft auf Vollständigkeit/Compliance (z. B. "Alle RFP-Anforderungen abgedeckt?"). Generiert finale Version als Word/PDF. Optional: Vorschläge für Begleitschreiben (z. B. "Personalisierter E-Mail-Entwurf").
@@ -51,11 +53,11 @@ Die KI (Grok 4.1) ist omnipräsent und unterstützt **kontinuierlich** durch Ana
 **Kontinuierliche KI-Unterstützung über den Prozess hinweg**: Die KI "lernt" durch RAG – je mehr Unternehmensdaten hochgeladen werden, desto besser werden Vorschläge. Sie simuliert Personas via Prompts (z. B. "Denke als Sales-Manager: Welche Fragen stellen?"). Im Verkaufsprozess reduziert das Tool den Aufwand um 50-70 %, fördert Cross-Team-Kollaboration und steigert die Qualität durch datenbasierte Insights.
 
 #### 3. Der Kern der App (Zentrale Logik und Technik)
-- **Kernkomponente: RAG-System**: Das Herzstück! Bei jedem KI-Aufruf:
-  1. **Retrieval**: Suche in Firebase Firestore nach relevanten Embeddings (Vektoren von Dokumenten, generiert via Grok API oder Sentence-Transformers).
+- **Kernkomponente: RAG-System**: Das Herzstück! ChromaDB als lokale Vektordatenbank mit Adesso AI Hub für Embeddings. Bei jedem KI-Aufruf:
+  1. **Retrieval**: Semantische Suche in ChromaDB nach relevanten Chunks (Cosine Distance auf Embeddings, generiert via Adesso AI Hub mit text-embedding-3-small).
   2. **Augmentation**: Füge RFP-Auszüge + retrieved Unternehmenswissen in den Prompt ein (z. B. "Basierend auf [RFP-Text] und [Experten-Info], generiere...").
   3. **Generation**: Grok 4.1 erzeugt strukturierten Output (JSON für Listen, Text für Entwürfe).
-- **Technische Kernlogik**: In Next.js API-Routes: User-Action → Auth-Check (Firebase Auth) → Daten aus Firestore/Storage holen → Grok-API-Aufruf mit Prompt → Ergebnis speichern/anzeigen. Für Dokumente: Backend-Processing (z. B. PDF zu Text, Excel-Parse).
+- **Technische Kernlogik**: In Next.js API-Routes: User-Action → Auth-Check (Firebase Auth) → Daten aus Firestore/Storage holen → RAG-Kontext aus ChromaDB → Grok-API-Aufruf mit Prompt + Kontext → Ergebnis speichern/anzeigen. Für Dokumente: Backend-Processing (z. B. PDF zu Text mit pdf-parse, Excel-Parse mit xlsx).
 - **Warum effizient im Verkaufsprozess?**: Der Kern ist "KI-first" – Menschliche Input nur für Feinabstimmung. Das macht den Prozess skalierbar, reduziert Bias (durch Multi-Persona) und passt perfekt zu Beratungsunternehmen (Template-Orientierung, Strukturfolge).
 - **Potenzielle Erweiterungen**: In zukünftigen Versionen: KI-basierte Win-Probability-Berechnung oder Integration mit CRM-Tools.
 

@@ -19,6 +19,7 @@ export default function StepProposalCreated({ projectId, onComplete }: StepPropo
   const {
     currentProposal,
     setCurrentProposal,
+    saveProposal,
     updateProposalChapter,
     aiProcessing,
     setAiProcessing,
@@ -40,19 +41,20 @@ export default function StepProposalCreated({ projectId, onComplete }: StepPropo
 
   const handleTemplateUpload = async (files: File[]) => {
     const file = files[0];
-    const newDoc: DocType = {
-      id: crypto.randomUUID(),
-      projectId,
-      name: file.name,
-      type: 'template',
-      mimeType: file.type,
-      url: URL.createObjectURL(file),
-      storagePath: `projects/${projectId}/templates/${file.name}`,
-      size: file.size,
-      uploadedBy: 'current-user',
-      createdAt: new Date(),
-    };
-    addDocument(newDoc);
+    try {
+      await addDocument({
+        projectId,
+        name: file.name,
+        type: 'template',
+        mimeType: file.type,
+        url: '',
+        storagePath: `projects/${projectId}/templates/${file.name}`,
+        size: file.size,
+        uploadedBy: 'system',
+      });
+    } catch (err) {
+      console.warn('Failed to save template doc:', err);
+    }
     setShowTemplateUpload(false);
   };
 
@@ -78,6 +80,7 @@ export default function StepProposalCreated({ projectId, onComplete }: StepPropo
 
       const proposal: Proposal = await response.json();
       setCurrentProposal(proposal);
+      saveProposal(proposal).catch(e => console.warn('Failed to save proposal:', e));
     } catch (error) {
       console.error('Structure generation error:', error);
       // Mock proposal structure
@@ -163,6 +166,7 @@ export default function StepProposalCreated({ projectId, onComplete }: StepPropo
         updatedAt: new Date(),
       };
       setCurrentProposal(mockProposal);
+      saveProposal(mockProposal).catch(e => console.warn('Failed to save mock proposal:', e));
     } finally {
       setAiProcessing(false);
     }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRAGClient } from '@/lib/vertex-rag';
+import { getRAGClient } from '@/lib/supabase-rag';
 import { chatCompletion, extractJson, systemPrompts } from '@/lib/ai';
 
 const XAI_API_KEY = process.env.XAI_API_KEY;
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     if (!ragClient.isConfigured()) {
       return NextResponse.json(
-        { error: 'Vertex AI RAG is not configured' },
+        { error: 'Supabase RAG is not configured' },
         { status: 503 }
       );
     }
